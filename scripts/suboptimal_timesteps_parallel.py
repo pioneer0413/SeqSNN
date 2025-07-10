@@ -35,7 +35,7 @@ if __name__ == "__main__":
             f"--runtime.output_dir=./outputs/spikernn_electricity_encoder=conv_T={T}"
         )
 
-    max_workers = 4  # 동시에 실행할 병렬 프로세스 수 (서버 사양에 맞춰 조절)
+    max_workers = 3  # 동시에 실행할 병렬 프로세스 수 (서버 사양에 맞춰 조절)
 
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
         futures = [executor.submit(run_command, cmd) for cmd in commands]
