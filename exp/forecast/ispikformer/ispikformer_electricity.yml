@@ -37,3 +37,7 @@ network:
   num_steps: 4
   heads: 8
   encoder_type: conv
+
+runtime:
+  seed: 42
+  output_dir: ./outputs/ispikformer_horizon=24_electricity

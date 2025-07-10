@@ -162,3 +162,6 @@ amlt/
 
 wandb/
 *.txt
+
+# User specific
+FORECAST_META.csv

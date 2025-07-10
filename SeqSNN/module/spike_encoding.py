@@ -11,5 +11,8 @@ SpikeEncoder = {
         "repeat": sj.encoder.RepeatEncoder,
         "conv": sj.encoder.ConvEncoder,
         "delta": sj.encoder.DeltaEncoder,
+        "all0s": sj.encoder.AllZerosEncoder,
+        "all1s": sj.encoder.AllOnesEncoder,
+        "random": sj.encoder.RandomEncoder,
     },
 }

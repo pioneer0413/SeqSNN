@@ -46,4 +46,4 @@ network:
 
 runtime: 
   seed: 40
-  # output_dir: ./outputs/NeuronPE_1000_40_spiketcn2d_horizon=24_electricity
+  output_dir: ./outputs/NeuronPE_1000_40_spiketcn2d_horizon=24_electricity

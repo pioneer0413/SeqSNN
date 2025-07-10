@@ -63,9 +63,10 @@ class BaseRunner(nn.Module):
         if model_path is not None:
             self.load(model_path)
         # multi gpu
+        self.gpu_id = self.get_min_gpu_id() if torch.cuda.is_available() else None
         if torch.cuda.is_available():
-            print("Using GPU")
-            self.cuda()
+            print(f"Using GPU: {self.gpu_id}")
+            self.cuda(device=self.gpu_id)
 
     def _build_network(self, network, *args, **kwargs) -> None:
         # TODO: encoder decoder decompose
@@ -207,8 +208,8 @@ class BaseRunner(nn.Module):
             for data, label in loader:
                 # pre batch / fetch data
                 if use_cuda():
-                    data, label = to_torch(data, device="cuda"), to_torch(
-                        label, device="cuda"
+                    data, label = to_torch(data, device=self.gpu_id), to_torch(
+                        label, device=self.gpu_id
                     )
 
                 # forward_once data -> dict ["loss"]
@@ -394,8 +395,8 @@ class BaseRunner(nn.Module):
         with torch.no_grad():
             for _, (data, label) in enumerate(loader):
                 if use_cuda():
-                    data, label = to_torch(data, device="cuda"), to_torch(
-                        label, device="cuda"
+                    data, label = to_torch(data, device=self.gpu_id), to_torch(
+                        label, device=self.gpu_id
                     )
                 pred = self(data)
                 if self.out_ranges is not None:
@@ -458,7 +459,7 @@ class BaseRunner(nn.Module):
         )
         for data, _ in loader:
             if use_cuda():
-                data = to_torch(data, device="cuda")
+                data = to_torch(data, device=self.gpu_id)
             pred = self(data)
             if self.out_ranges is not None:
                 pred = pred[:, self.out_ranges]
@@ -472,3 +473,18 @@ class BaseRunner(nn.Module):
         prediction = pd.DataFrame(data=prediction, index=dataset.get_index())
         prediction.to_pickle(self.checkpoint_dir / (name + "_pre.pkl"))
         return prediction
+    
+    def get_min_gpu_id(self, static_id: Optional[int]=None)->int:
+        '''
+        if static_id is given, return it directly.
+        '''
+        if static_id is not None:
+            return static_id
+        
+        assert static_id is None, "static_id should be None if you want to use dynamic gpu id."
+
+        import subprocess as sp
+        output = sp.check_output(["/usr/bin/nvidia-smi", "--query-gpu=memory.used", "--format=csv"])
+        memory = [int(s.split(" ")[0]) for s in output.decode().split("\n")[1:-1]]
+        assert len(memory) == torch.cuda.device_count()
+        return np.argmin(memory)
