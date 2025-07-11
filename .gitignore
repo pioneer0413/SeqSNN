@@ -165,3 +165,5 @@ wandb/
 
 # User specific
 FORECAST_META.csv
+warehouse
+analysis/
