@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     save_path = 'outputs/execution_time.csv'
     header = ['network_type', 'encoder_type', 'num_steps', 'execution_time']
-    record = [_config.network.type, _config.network.encoder_type, _config.network.num_steps, execution_time]
+    record = [_config.runtime.output_dir, _config.network.encoder_type, _config.network.num_steps, execution_time]
     '''
     if not save_path exists, then create it and write the header with CSV format
     else append the record to the CSV file

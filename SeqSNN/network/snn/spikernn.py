@@ -9,6 +9,8 @@ from ...module.positional_encoding import PositionEmbedding
 from ...module.spike_encoding import SpikeEncoder
 from ..base import NETWORKS
 
+from ...module.clustering import Cluster_assigner
+
 
 tau = 2.0  # beta = 1 - 1/tau
 backend = "torch"
@@ -54,6 +56,8 @@ class SpikeRNN(nn.Module):
         pe_type: str = "none",
         pe_mode: str = "concat",  # "add" or concat
         neuron_pe_scale: float = 1000.0,  # "100" or "1000" or "10000"
+        use_cluster: bool = False,
+        gpu_id: Optional[int] = None,
     ):
         super().__init__()
         self.pe_type = pe_type
@@ -61,6 +65,8 @@ class SpikeRNN(nn.Module):
         self.num_pe_neuron = num_pe_neuron
         self.neuron_pe_scale = neuron_pe_scale
         self.temporal_encoder = SpikeEncoder[self._snn_backend][encoder_type](num_steps)
+        self.use_cluster = use_cluster
+        self.gpu_id = gpu_id
 
         self.pe = PositionEmbedding(
             pe_type=pe_type,
@@ -72,6 +78,20 @@ class SpikeRNN(nn.Module):
             dropout=0.1,
             num_steps=num_steps,
         )
+
+        '''
+        Cluster assigner
+        '''
+        if self.use_cluster:
+            self.input_size = input_size
+            self.max_length = max_length
+            self.cluster_assigner = Cluster_assigner(
+                n_vars=input_size,
+                n_cluster=3,  # This is a dummy value, will be set later
+                seq_len=max_length,
+                d_model=512,
+                device=self.gpu_id
+            )
 
         if self.pe_type == "neuron" and self.pe_mode == "concat":
             self.dim = hidden_size + num_pe_neuron
@@ -103,9 +123,36 @@ class SpikeRNN(nn.Module):
     def forward(
         self,
         inputs: torch.Tensor,
+        if_update: bool = False,
     ):
         functional.reset_net(self)
+
+        '''
+        Get cluster probabilities and embeddings
+        '''
+        if self.use_cluster:
+            cluster_prob, cluster_emb = self.cluster_assigner(
+                inputs, self.cluster_assigner.cluster_emb
+            )
+            if if_update:
+                self.cluster_emb = nn.Parameter(cluster_emb, requires_grad=True)
+
         hiddens = self.temporal_encoder(inputs)  # T, B, C, L
+
+        '''
+        Inject cluster probabilities
+        '''
+        if self.use_cluster:
+            copy_cluster_prob = cluster_prob.clone()
+            cluster_prob = cluster_prob.transpose(1, 0) # [K, C]
+            # [K, C] -> [K, 1, C, 1]
+            cluster_prob = cluster_prob.unsqueeze(1).unsqueeze(-1)  # K, 1, C, 1
+            # [K, 1, C, 1] -> [K, B, C, L] by repeat
+            cluster_prob = cluster_prob.repeat(1, hiddens.size(1), 1, hiddens.size(3))
+            hiddens = torch.cat((hiddens, cluster_prob), dim=0)  # T+K, B, C, L
+            # overwrite for further processing
+            cluster_prob = copy_cluster_prob # [C, K]
+
         hiddens = hiddens.transpose(-2, -1)  # T, B, L, C
         T, B, L, _ = hiddens.size()  # T, B, L, D
         if self.pe_type != "none":
@@ -114,6 +161,8 @@ class SpikeRNN(nn.Module):
         hiddens = self.init_lif(hiddens)
         hiddens = self.net(hiddens)  # T, B, L, D
         out = hiddens.mean(0)
+        if self.use_cluster:
+            return out, out.mean(dim=1), cluster_prob  # B L D, B D, (n_vars, n_cluster)
         return out, out.mean(dim=1)  # B L D, B D
 
     @property

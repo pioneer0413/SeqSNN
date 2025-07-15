@@ -10,3 +10,4 @@ from .snn.ispikformer import iSpikformer
 from .snn.spikformer import Spikformer
 from .snn.spikformer_CPG import SpikformerCPG
 from .snn.spikernn import SpikeRNN, SpikeRNN2D
+from .snn.spikegru import TSSNNGRU, TSSNNGRU2D, ITSSNNGRU2D

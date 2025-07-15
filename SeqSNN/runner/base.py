@@ -18,6 +18,7 @@ from utilsd.earlystop import EarlyStop, EarlyStopStatus
 from ..common.function import get_loss_fn, get_metric_fn, printt
 from ..common.utils import AverageMeter, GlobalTracker, to_torch
 
+from ..module.clustering import get_similarity_matrix_update, similarity_loss_batch
 
 class RUNNERS(metaclass=Registry, name="runner"):
     pass
@@ -41,6 +42,7 @@ class BaseRunner(nn.Module):
         model_path: Optional[str] = None,
         output_dir: Optional[Path] = None,
         checkpoint_dir: Optional[Path] = None,
+        beta: float = 1e-5,
     ) -> None:
         super().__init__()
         if not hasattr(self, "hyper_paras"):
@@ -60,10 +62,14 @@ class BaseRunner(nn.Module):
         )
         self._init_logger(output_dir)
         self.checkpoint_dir = checkpoint_dir
+        self.beta = beta
         if model_path is not None:
             self.load(model_path)
         # multi gpu
-        self.gpu_id = self.get_min_gpu_id() if torch.cuda.is_available() else None
+        if network.gpu_id is not None:
+            self.gpu_id = self.get_min_gpu_id(static_id=network.gpu_id) if torch.cuda.is_available() else None
+        else:
+            self.gpu_id = self.get_min_gpu_id() if torch.cuda.is_available() else None
         if torch.cuda.is_available():
             print(f"Using GPU: {self.gpu_id}")
             self.cuda(device=self.gpu_id)
@@ -220,6 +226,12 @@ class BaseRunner(nn.Module):
                     label = label[:, self.out_ranges]
 
                 loss = self.loss_fn(label.squeeze(-1), pred.squeeze(-1))
+
+                if self.network.use_cluster:
+                    simMatrix = get_similarity_matrix_update(batch_data=data)
+                    loss_s = similarity_loss_batch(prob=self.cluster_prob, simMatrix=simMatrix)
+                    loss += loss_s * self.beta
+
                 self.optimizer.zero_grad()
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.parameters(), 1)
@@ -404,6 +416,12 @@ class BaseRunner(nn.Module):
                     label = label[:, self.out_ranges]
                 # print(pred, label)
                 loss = self.loss_fn(label.squeeze(-1), pred.squeeze(-1))
+
+                if self.network.use_cluster:
+                    simMatrix = get_similarity_matrix_update(batch_data=data)
+                    loss_s = similarity_loss_batch(prob=self.cluster_prob, simMatrix=simMatrix)
+                    loss += loss_s * self.beta
+
                 loss = loss.item()
                 eval_loss.update(loss, np.prod(label.shape))
                 eval_global_tracker.update(label, pred)
