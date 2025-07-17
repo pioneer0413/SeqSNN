@@ -22,10 +22,9 @@ runner:
   observe: loss
   lower_is_better: True
   max_epoches: 1000
-  early_stop: 200
+  early_stop: 30
   batch_size: 64
   aggregate: True
-  beta: 1e-5
 
 network:
   type: SpikeRNN
@@ -34,12 +33,11 @@ network:
   num_steps: 4
   encoder_type: conv
   # pe_type: learn
-  pe_type: neuron
+  pe_type: none
   pe_mode: concat
   num_pe_neuron: 40
   neuron_pe_scale: 1000.0
-  use_cluster: True  # Enable clustering
-  gpu_id: 2
+
 
 runtime:
   seed: 40

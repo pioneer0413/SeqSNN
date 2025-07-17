@@ -1,15 +1,15 @@
 _base_:
-- ../dataset/metr-la.yml
+- ../dataset/electricity.yml
 _custom_imports_:
 - SeqSNN.network
 - SeqSNN.dataset
 - SeqSNN.runner
 
 data:
-  window: 12
-  horizon: 6
-  normalize: 2
   raw_label: False
+  window: 168
+  horizon: 96
+  normalize: 3
 
 runner:
   type: ts
@@ -22,10 +22,9 @@ runner:
   observe: loss
   lower_is_better: True
   max_epoches: 1000
-  early_stop: 200
+  early_stop: 30
   batch_size: 64
   aggregate: True
-  beta: 1e-5
 
 network:
   type: SpikeRNN
@@ -34,13 +33,12 @@ network:
   num_steps: 4
   encoder_type: conv
   # pe_type: learn
-  pe_type: neuron
+  pe_type: none
   pe_mode: concat
   num_pe_neuron: 40
   neuron_pe_scale: 1000.0
-  use_cluster: True  # Enable clustering
-  gpu_id: 2
+
 
 runtime:
-  seed: 40
-  output_dir: ./outputs/NeuronPE_1000_4_SpikeRNN_horizon=6_metr-la
+  seed: 39
+  output_dir: ./outputs/NeuronPE_1000_4_SpikeRNN_horizon=96_electricity
