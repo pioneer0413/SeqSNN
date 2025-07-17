@@ -57,6 +57,7 @@ class SpikeRNN(nn.Module):
         pe_mode: str = "concat",  # "add" or concat
         neuron_pe_scale: float = 1000.0,  # "100" or "1000" or "10000"
         use_cluster: bool = False,
+        use_ste: bool = False,  # Use Straight-Through Estimator for cluster probabilities
         gpu_id: Optional[int] = None,
     ):
         super().__init__()
@@ -66,6 +67,7 @@ class SpikeRNN(nn.Module):
         self.neuron_pe_scale = neuron_pe_scale
         self.temporal_encoder = SpikeEncoder[self._snn_backend][encoder_type](num_steps)
         self.use_cluster = use_cluster
+        self.use_ste = use_ste
         self.gpu_id = gpu_id
 
         self.pe = PositionEmbedding(
@@ -143,15 +145,23 @@ class SpikeRNN(nn.Module):
         Inject cluster probabilities
         '''
         if self.use_cluster:
-            copy_cluster_prob = cluster_prob.clone()
+            self.cluster_prob = cluster_prob
             cluster_prob = cluster_prob.transpose(1, 0) # [K, C]
             # [K, C] -> [K, 1, C, 1]
             cluster_prob = cluster_prob.unsqueeze(1).unsqueeze(-1)  # K, 1, C, 1
             # [K, 1, C, 1] -> [K, B, C, L] by repeat
             cluster_prob = cluster_prob.repeat(1, hiddens.size(1), 1, hiddens.size(3))
+
+            '''
+            Hard binarize cluster probabilities while keeping gradients calculable
+            '''
+            cluster_prob_soft = torch.sigmoid(cluster_prob)  # [K, B, C, L]
+            cluster_prob_hard = (cluster_prob > 0.5).float()  # [K, B, C, L]
+
+            if self.use_ste:
+                cluster_prob = cluster_prob_soft + (cluster_prob_hard - cluster_prob_soft).detach()  # [K, B, C, L]
+
             hiddens = torch.cat((hiddens, cluster_prob), dim=0)  # T+K, B, C, L
-            # overwrite for further processing
-            cluster_prob = copy_cluster_prob # [C, K]
 
         hiddens = hiddens.transpose(-2, -1)  # T, B, L, C
         T, B, L, _ = hiddens.size()  # T, B, L, D
@@ -161,8 +171,6 @@ class SpikeRNN(nn.Module):
         hiddens = self.init_lif(hiddens)
         hiddens = self.net(hiddens)  # T, B, L, D
         out = hiddens.mean(0)
-        if self.use_cluster:
-            return out, out.mean(dim=1), cluster_prob  # B L D, B D, (n_vars, n_cluster)
         return out, out.mean(dim=1)  # B L D, B D
 
     @property

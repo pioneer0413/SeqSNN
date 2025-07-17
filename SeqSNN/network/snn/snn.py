@@ -145,6 +145,7 @@ class TSSNN2D(nn.Module):
         pe_type: str = "none",
         pe_mode: str = "concat",  # "add" or concat
         neuron_pe_scale: float = 1000.0,  # "100" or "1000" or "10000"
+        gpu_id: Optional[int] = None,
     ):
         super().__init__()
         self.pe_type = pe_type
@@ -154,6 +155,7 @@ class TSSNN2D(nn.Module):
         self.temporal_encoder = SpikeEncoder[self._snn_backend][encoder_type](
             encoder_dim
         )
+        self.gpu_id = gpu_id
 
         self.pe = PositionEmbedding(
             pe_type=pe_type,

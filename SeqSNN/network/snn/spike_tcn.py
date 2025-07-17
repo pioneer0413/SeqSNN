@@ -136,6 +136,7 @@ class SpikeTemporalConvNet2D(nn.Module):
         pe_type: str = "none",
         pe_mode: str = "concat",  # "add" or "concat"
         neuron_pe_scale: float = 1000.0,  # "100" or "1000" or "10000"
+        gpu_id: Optional[int] = None,
     ):
         """
         Args:
@@ -148,6 +149,7 @@ class SpikeTemporalConvNet2D(nn.Module):
         self.pe_mode = pe_mode
         self.num_pe_neuron = num_pe_neuron
         self.encoder = SpikeEncoder[self._snn_backend][encoder_type](hidden_size)
+        self.gpu_id = gpu_id
 
         self.num_steps = num_steps
         self.pe = PositionEmbedding(

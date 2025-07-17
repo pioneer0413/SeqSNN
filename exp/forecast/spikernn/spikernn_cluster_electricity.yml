@@ -39,6 +39,7 @@ network:
   num_pe_neuron: 40
   neuron_pe_scale: 1000.0
   use_cluster: True  # Enable clustering
+  use_ste: True
   gpu_id: 2
 
 runtime:

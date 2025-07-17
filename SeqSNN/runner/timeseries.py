@@ -98,10 +98,7 @@ class TS(BaseRunner):
             self.fc_out = nn.Identity()
 
     def forward(self, inputs):
-        if self.network.use_cluster:
-            seq_out, emb_outs, self.cluster_prob = self.network(inputs, if_update=True)
-        else:
-            seq_out, emb_outs = self.network(inputs)
+        seq_out, emb_outs = self.network(inputs)
         if self.aggregate:
             out = emb_outs
         else:

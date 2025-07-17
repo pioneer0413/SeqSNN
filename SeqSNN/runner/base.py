@@ -227,9 +227,9 @@ class BaseRunner(nn.Module):
 
                 loss = self.loss_fn(label.squeeze(-1), pred.squeeze(-1))
 
-                if self.network.use_cluster:
+                if hasattr(self.network, "use_cluster") and self.network.use_cluster:
                     simMatrix = get_similarity_matrix_update(batch_data=data)
-                    loss_s = similarity_loss_batch(prob=self.cluster_prob, simMatrix=simMatrix)
+                    loss_s = similarity_loss_batch(prob=self.network.cluster_prob, simMatrix=simMatrix)
                     loss += loss_s * self.beta
 
                 self.optimizer.zero_grad()
@@ -417,9 +417,9 @@ class BaseRunner(nn.Module):
                 # print(pred, label)
                 loss = self.loss_fn(label.squeeze(-1), pred.squeeze(-1))
 
-                if self.network.use_cluster:
+                if hasattr(self.network, "use_cluster") and self.network.use_cluster:
                     simMatrix = get_similarity_matrix_update(batch_data=data)
-                    loss_s = similarity_loss_batch(prob=self.cluster_prob, simMatrix=simMatrix)
+                    loss_s = similarity_loss_batch(prob=self.network.cluster_prob, simMatrix=simMatrix)
                     loss += loss_s * self.beta
 
                 loss = loss.item()
@@ -465,6 +465,14 @@ class BaseRunner(nn.Module):
         Returns:
             np.ndarray: The model output.
         """
+        
+        '''
+        Load best model parameters
+        '''
+        if (self.checkpoint_dir / "model_best.pkl").exists():
+            print(f"Load best model from {self.checkpoint_dir / 'model_best.pkl'}", __name__)
+            self.load(self.checkpoint_dir / "model_best.pkl")
+
         self.eval()
         preds = []
         dataset.load()

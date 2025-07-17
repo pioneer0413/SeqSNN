@@ -65,6 +65,7 @@ class Spikformer(nn.Module):
         qk_scale: float = 0.125,
         input_size: Optional[int] = None,
         weight_file: Optional[Path] = None,
+        gpu_id: Optional[int] = None,
     ):
         super().__init__()
         self.dim = dim
@@ -74,6 +75,7 @@ class Spikformer(nn.Module):
         self.pe_type = pe_type
         self.pe_mode = pe_mode
         self.num_pe_neuron = num_pe_neuron
+        self.gpu_id = gpu_id
 
         self.temporal_encoder = SpikeEncoder[self._snn_backend]["conv"](num_steps)
         self.pe = PositionEmbedding(
