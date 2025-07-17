@@ -66,7 +66,7 @@ class BaseRunner(nn.Module):
         if model_path is not None:
             self.load(model_path)
         # multi gpu
-        if network.gpu_id is not None:
+        if hasattr(network, 'gpu_id') and network.gpu_id is not None:
             self.gpu_id = self.get_min_gpu_id(static_id=network.gpu_id) if torch.cuda.is_available() else None
         else:
             self.gpu_id = self.get_min_gpu_id() if torch.cuda.is_available() else None
