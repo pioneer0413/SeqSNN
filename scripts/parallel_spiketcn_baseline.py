@@ -20,6 +20,7 @@ if __name__ == "__main__":
     parser.add_argument('--dataset', type=str, default='electricity', choices=['electricity', 'metr-la', 'pems-bay', 'solar'], help='Dataset to use for the experiments.')
     parser.add_argument('--horizon', type=int, default=24, choices=[6, 24, 48, 96], help='Forecasting horizon.')
     parser.add_argument('--seed', type=int, default=40)
+    parser.add_argument('--encoder', type=str, default='repeat', choices=['repeat', 'delta', 'conv'], help='Encoder type to use for the experiments.')
     args = parser.parse_args()
 
     dst_path = '/home/hwkang/SeqSNN/warehouse/with_pe'
@@ -28,21 +29,11 @@ if __name__ == "__main__":
 
     commands.append(
         f"python -m SeqSNN.entry.tsforecast exp/forecast/tcn/spiketcn2d_{args.dataset}.yml "
-        f"--network.encoder_type=repeat --data.horizon={args.horizon} --runtime.seed={args.seed} "
-        f"--runtime.output_dir={dst_path}/spiketcn_{args.dataset}_encoder=repeat_horizon={args.horizon}_baseline_seed={args.seed}"
-    )
-    commands.append(
-        f"python -m SeqSNN.entry.tsforecast exp/forecast/tcn/spiketcn2d_{args.dataset}.yml "
-        f"--network.encoder_type=delta --data.horizon={args.horizon} --runtime.seed={args.seed} "
-        f"--runtime.output_dir={dst_path}/spiketcn_{args.dataset}_encoder=delta_horizon={args.horizon}_baseline_seed={args.seed}"
-    )
-    commands.append(
-        f"python -m SeqSNN.entry.tsforecast exp/forecast/tcn/spiketcn2d_{args.dataset}.yml "
-        f"--network.encoder_type=conv --data.horizon={args.horizon} --runtime.seed={args.seed} "
-        f"--runtime.output_dir={dst_path}/spiketcn_{args.dataset}_encoder=conv_horizon={args.horizon}_baseline_seed={args.seed}"
+        f"--network.encoder_type={args.encoder} --data.horizon={args.horizon} --runtime.seed={args.seed} "
+        f"--runtime.output_dir={dst_path}/spiketcn_{args.dataset}_encoder={args.encoder}_horizon={args.horizon}_baseline_seed={args.seed}"
     )
 
-    max_workers = 3  # 동시에 실행할 병렬 프로세스 수 (서버 사양에 맞춰 조절)
+    max_workers = 1  # 동시에 실행할 병렬 프로세스 수 (서버 사양에 맞춰 조절)
 
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
         futures = [executor.submit(run_command, cmd) for cmd in commands]
