@@ -40,3 +40,4 @@ network:
 
 runtime:
   seed: 42
+  output_dir: ./outputs/ispikformer_horizon=24_pems-bay

@@ -294,6 +294,7 @@ class BaseRunner(nn.Module):
                         f"{self.checkpoint_dir}/network_best.pkl",
                     )
                 elif es == EarlyStopStatus.STOP and self._early_stop():
+                    termination_epoch = epoch
                     break
             else:
                 es = self.early_stop.step(metric_res[self.observe])
@@ -332,6 +333,9 @@ class BaseRunner(nn.Module):
             best_score = value
             best_res["test"] = test_res
             testset.freeup()
+        test_r2 = best_res["test"]["r2"] if "test" in best_res else None
+        test_rse = best_res["test"]["rse"] if "test" in best_res else None
+        best_res['record'] = f'Termination epoch: {termination_epoch} | test r2: {test_r2:.4f} | test rse: {test_rse:.4f}'
         torch.save(self.best_params, f"{self.checkpoint_dir}/model_best.pkl")
         torch.save(self.best_network_params, f"{self.checkpoint_dir}/network_best.pkl")
         with open(f"{self.checkpoint_dir}/res.json", "w") as f:
@@ -470,7 +474,7 @@ class BaseRunner(nn.Module):
         Load best model parameters
         '''
         if (self.checkpoint_dir / "model_best.pkl").exists():
-            print(f"Load best model from {self.checkpoint_dir / 'model_best.pkl'}", __name__)
+            #print(f"Load best model from {self.checkpoint_dir / 'model_best.pkl'}", __name__)
             self.load(self.checkpoint_dir / "model_best.pkl")
 
         self.eval()
