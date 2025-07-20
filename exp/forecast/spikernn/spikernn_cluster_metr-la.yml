@@ -25,7 +25,7 @@ runner:
   early_stop: 200
   batch_size: 64
   aggregate: True
-  beta: 1e-5
+  beta: 5e-6
 
 network:
   type: SpikeRNN
@@ -34,11 +34,12 @@ network:
   num_steps: 4
   encoder_type: conv
   # pe_type: learn
-  pe_type: none
+  pe_type: neuron
   pe_mode: concat
   num_pe_neuron: 40
   neuron_pe_scale: 1000.0
   use_cluster: True  # Enable clustering
+  use_ste: True
   gpu_id: 2
 
 runtime:
