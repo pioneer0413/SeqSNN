@@ -334,7 +334,10 @@ class BaseRunner(nn.Module):
             best_res["test"] = test_res
             testset.freeup()
         test_r2 = best_res["test"]["r2"] if "test" in best_res else None
-        test_rse = best_res["test"]["rse"] if "test" in best_res else None
+        try:
+            test_rse = best_res["test"]["rse"] if "test" in best_res else None
+        except Exception as e:
+            test_rse = best_res["test"]["rrse"] if "test" in best_res else None
         best_res['record'] = f'Termination epoch: {termination_epoch} | test r2: {test_r2:.4f} | test rse: {test_rse:.4f}'
         torch.save(self.best_params, f"{self.checkpoint_dir}/model_best.pkl")
         torch.save(self.best_network_params, f"{self.checkpoint_dir}/network_best.pkl")
