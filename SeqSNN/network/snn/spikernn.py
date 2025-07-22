@@ -157,7 +157,8 @@ class SpikeRNN(nn.Module):
             '''
             Hard binarize cluster probabilities while keeping gradients calculable
             '''
-            cluster_prob_soft = torch.sigmoid(cluster_prob)  # [K, B, C, L]
+            #cluster_prob_soft = torch.sigmoid(cluster_prob)  # [K, B, C, L]
+            cluster_prob_soft = cluster_prob
             cluster_prob_hard = (cluster_prob > 0.5).float()  # [K, B, C, L]
 
             if self.use_ste:
