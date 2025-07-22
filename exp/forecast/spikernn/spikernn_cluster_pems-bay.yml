@@ -41,6 +41,7 @@ network:
   use_cluster: True  # Enable clustering
   use_ste: True
   gpu_id: 2
+  n_cluster: 3
 
 runtime:
   seed: 40

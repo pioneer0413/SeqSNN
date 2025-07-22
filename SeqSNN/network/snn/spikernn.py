@@ -59,6 +59,7 @@ class SpikeRNN(nn.Module):
         use_cluster: bool = False,
         use_ste: bool = False,  # Use Straight-Through Estimator for cluster probabilities
         gpu_id: Optional[int] = None,
+        n_cluster: Optional[int] = 3,  # Number of clusters for clustering
     ):
         super().__init__()
         self.pe_type = pe_type
@@ -69,6 +70,7 @@ class SpikeRNN(nn.Module):
         self.use_cluster = use_cluster
         self.use_ste = use_ste
         self.gpu_id = gpu_id
+        self.n_cluster = n_cluster
 
         self.pe = PositionEmbedding(
             pe_type=pe_type,
@@ -89,7 +91,7 @@ class SpikeRNN(nn.Module):
             self.max_length = max_length
             self.cluster_assigner = Cluster_assigner(
                 n_vars=input_size,
-                n_cluster=3,  # This is a dummy value, will be set later
+                n_cluster=self.n_cluster,  # This is a dummy value, will be set later
                 seq_len=max_length,
                 d_model=512,
                 device=self.gpu_id
