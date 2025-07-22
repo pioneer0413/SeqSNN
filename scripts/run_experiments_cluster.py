@@ -79,10 +79,10 @@ def run_experiments(gpu_ids, max_workers=None):
     experiments = []
     experiment_id = 1
     
-    for dataset_name in dataset_names:
-        for encoder_type in encoder_types:
+    for seed in seeds:
+        for dataset_name in dataset_names:
             for horizon in horizons:
-                for seed in seeds:
+                for encoder_type in encoder_types:                
                     for n_cluster in cluster_list:
                         gpu_id = gpu_ids[(experiment_id - 1) % len(gpu_ids)]
                         experiments.append((dataset_name, encoder_type, gpu_id, horizon, seed, n_cluster))
