@@ -47,6 +47,14 @@ class BaseRunner(nn.Module):
         super().__init__()
         if not hasattr(self, "hyper_paras"):
             self.hyper_paras = {}
+
+        # multi gpu
+        if hasattr(network, 'gpu_id') and network.gpu_id is not None:
+            self.gpu_id = self.get_min_gpu_id(static_id=network.gpu_id) if torch.cuda.is_available() else None
+        else:
+            self.gpu_id = self.get_min_gpu_id() if torch.cuda.is_available() else None
+        torch.cuda.set_device(self.gpu_id)
+
         self._build_network(network, **self.hyper_paras)
         self._init_optimization(
             optimizer=optimizer,
@@ -65,11 +73,7 @@ class BaseRunner(nn.Module):
         self.beta = beta
         if model_path is not None:
             self.load(model_path)
-        # multi gpu
-        if hasattr(network, 'gpu_id') and network.gpu_id is not None:
-            self.gpu_id = self.get_min_gpu_id(static_id=network.gpu_id) if torch.cuda.is_available() else None
-        else:
-            self.gpu_id = self.get_min_gpu_id() if torch.cuda.is_available() else None
+        
         if torch.cuda.is_available():
             print(f"Using GPU: {self.gpu_id}")
             self.cuda(device=self.gpu_id)
