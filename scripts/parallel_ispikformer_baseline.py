@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     commands.append(
         f"python -m SeqSNN.entry.tsforecast exp/forecast/ispikformer/ispikformer_{args.dataset}.yml "
-        f"--network.encoder_type={args.encoder} --data.horizon={args.horizon} --runtime.seed={args.seed} "
+        f"--network.encoder_type={args.encoder} --data.horizon={args.horizon} --runtime.seed={args.seed} --runner.out_size={args.horizon} "
         f"--runtime.output_dir={dst_path}/ispikformer_{args.dataset}_encoder={args.encoder}_horizon={args.horizon}_baseline_seed={args.seed}"
     )
 
