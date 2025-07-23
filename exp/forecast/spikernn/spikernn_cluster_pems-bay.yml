@@ -22,7 +22,7 @@ runner:
   observe: loss
   lower_is_better: True
   max_epoches: 1000
-  early_stop: 200
+  early_stop: 50
   batch_size: 64
   aggregate: True
   beta: 5e-6

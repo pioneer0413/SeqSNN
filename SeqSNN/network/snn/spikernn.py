@@ -159,7 +159,8 @@ class SpikeRNN(nn.Module):
             '''
             #cluster_prob_soft = torch.sigmoid(cluster_prob)  # [K, B, C, L]
             cluster_prob_soft = cluster_prob
-            cluster_prob_hard = (cluster_prob > 0.5).float()  # [K, B, C, L]
+            #cluster_prob_hard = (cluster_prob > 0.5).float()  # [K, B, C, L]
+            cluster_prob_hard = torch.bernoulli(cluster_prob_soft)  # [K, B, C, L] - Bernoulli sampling
 
             if self.use_ste:
                 cluster_prob = cluster_prob_soft + (cluster_prob_hard - cluster_prob_soft).detach()  # [K, B, C, L]

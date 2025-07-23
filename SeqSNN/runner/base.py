@@ -53,6 +53,9 @@ class BaseRunner(nn.Module):
             self.gpu_id = self.get_min_gpu_id(static_id=network.gpu_id) if torch.cuda.is_available() else None
         else:
             self.gpu_id = self.get_min_gpu_id() if torch.cuda.is_available() else None
+        # if self.gpu_id is numpy instance, then convert it to int
+        if isinstance(self.gpu_id, np.integer):
+            self.gpu_id = int(self.gpu_id)
         torch.cuda.set_device(self.gpu_id)
 
         self._build_network(network, **self.hyper_paras)
