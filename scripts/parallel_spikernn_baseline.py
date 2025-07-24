@@ -23,6 +23,7 @@ if __name__ == "__main__":
     parser.add_argument('--cluster', action='store_true', default=False, help='Run in cluster mode.')
     parser.add_argument('--gpu_id', type=int, default=0, help='GPU ID to use for the experiments.')
     parser.add_argument('--n_cluster', type=int, default=3, help='Number of clusters for clustering (default: 3).')
+    parser.add_argument('--patience', type=int, default=30, help='Early stopping patience (default: 30).')
     args = parser.parse_args()
 
     dst_path = '/home/hwkang/SeqSNN/warehouse/cluster' if args.cluster else '/home/hwkang/SeqSNN/warehouse/with_pe'
@@ -33,35 +34,35 @@ if __name__ == "__main__":
         commands.append(
             f"python -m SeqSNN.entry.tsforecast exp/forecast/spikernn/spikernn_cluster_{args.dataset}.yml "
             f"--network.encoder_type=repeat --data.horizon={args.horizon} --runtime.seed={args.seed} --network.gpu_id={args.gpu_id} "
-            f"--network.n_cluster={args.n_cluster} "
+            f"--network.n_cluster={args.n_cluster} --runner.early_stop={args.patience} "
             f"--runtime.output_dir={dst_path}/spikernn_cluster_{args.dataset}_encoder=repeat_horizon={args.horizon}_baseline_seed={args.seed}_n_cluster={args.n_cluster} "
         )
         commands.append(
             f"python -m SeqSNN.entry.tsforecast exp/forecast/spikernn/spikernn_cluster_{args.dataset}.yml "
             f"--network.encoder_type=delta --data.horizon={args.horizon} --runtime.seed={args.seed} --network.gpu_id={args.gpu_id} "
-            f"--network.n_cluster={args.n_cluster} "
+            f"--network.n_cluster={args.n_cluster} --runner.early_stop={args.patience} "
             f"--runtime.output_dir={dst_path}/spikernn_cluster_{args.dataset}_encoder=delta_horizon={args.horizon}_baseline_seed={args.seed}_n_cluster={args.n_cluster} "
         )
         commands.append(
             f"python -m SeqSNN.entry.tsforecast exp/forecast/spikernn/spikernn_cluster_{args.dataset}.yml "
             f"--network.encoder_type=conv --data.horizon={args.horizon} --runtime.seed={args.seed} --network.gpu_id={args.gpu_id} "
-            f"--network.n_cluster={args.n_cluster} "
+            f"--network.n_cluster={args.n_cluster} --runner.early_stop={args.patience} "
             f"--runtime.output_dir={dst_path}/spikernn_cluster_{args.dataset}_encoder=conv_horizon={args.horizon}_baseline_seed={args.seed}_n_cluster={args.n_cluster} "
         )
     else:
         commands.append(
             f"python -m SeqSNN.entry.tsforecast exp/forecast/spikernn/spikernn_{args.dataset}.yml "
-            f"--network.encoder_type=repeat --data.horizon={args.horizon} --runtime.seed={args.seed} "
+            f"--network.encoder_type=repeat --data.horizon={args.horizon} --runtime.seed={args.seed} --runner.early_stop={args.patience} "
             f"--runtime.output_dir={dst_path}/spikernn_{args.dataset}_encoder=repeat_horizon={args.horizon}_baseline_seed={args.seed}"
         )
         commands.append(
             f"python -m SeqSNN.entry.tsforecast exp/forecast/spikernn/spikernn_{args.dataset}.yml "
-            f"--network.encoder_type=delta --data.horizon={args.horizon} --runtime.seed={args.seed} "
+            f"--network.encoder_type=delta --data.horizon={args.horizon} --runtime.seed={args.seed} --runner.early_stop={args.patience} "
             f"--runtime.output_dir={dst_path}/spikernn_{args.dataset}_encoder=delta_horizon={args.horizon}_baseline_seed={args.seed}"
         )
         commands.append(
             f"python -m SeqSNN.entry.tsforecast exp/forecast/spikernn/spikernn_{args.dataset}.yml "
-            f"--network.encoder_type=conv --data.horizon={args.horizon} --runtime.seed={args.seed} "
+            f"--network.encoder_type=conv --data.horizon={args.horizon} --runtime.seed={args.seed} --runner.early_stop={args.patience} "
             f"--runtime.output_dir={dst_path}/spikernn_{args.dataset}_encoder=conv_horizon={args.horizon}_baseline_seed={args.seed}"
         )
 

@@ -116,7 +116,7 @@ class iSpikformer(nn.Module):
             nn.init.constant_(m.bias, 0.0)
 
     def forward(self, x, 
-                if_update: bool = False):
+                if_update: bool = True):
         functional.reset_net(self.encoder)
         functional.reset_net(self.emb)
         functional.reset_net(self.blocks)

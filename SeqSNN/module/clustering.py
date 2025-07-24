@@ -43,8 +43,10 @@ class Cluster_assigner(nn.Module):
         cluster_emb = self.p2c(cluster_emb_, x_emb_, x_emb_, mask=mask.transpose(0,1))
         cluster_emb_avg = torch.mean(cluster_emb, dim=0)
         #print(cluster_emb.shape, cluster_emb_.shape, x_emb_.shape, mask.shape)
+
+        #print(f'prob_avg: {prob_avg.shape}, prob_temp: {prob_temp.shape}, prob: {prob.shape}')
     
-        return prob_avg, cluster_emb_avg
+        return prob_temp.reshape(prob.shape), cluster_emb_avg
      
     def concrete_bern(self, prob, temp = 0.07):
         random_noise = torch.empty_like(prob).uniform_(1e-10, 1 - 1e-10).to(prob.device)
@@ -203,6 +205,8 @@ def similarity_loss_batch(prob, simMatrix):
             prob = torch.log(prob + 1e-10) - torch.log(1.0 - prob + 1e-10)
             prob_bern = ((prob + random_noise) / temp).sigmoid()
             return prob_bern
+        if prob.dim() == 3:
+            prob = prob.mean(dim=0) # set to [n_vars, n_cluster]
         membership = concrete_bern(prob)  #[n_vars, n_clusters]
         temp_1 = torch.mm(membership.t(), simMatrix) 
         SAS = torch.mm(temp_1, membership)

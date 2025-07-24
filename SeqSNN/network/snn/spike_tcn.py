@@ -212,7 +212,7 @@ class SpikeTemporalConvNet2D(nn.Module):
             self.__output_size = input_size
 
     def forward(self, inputs: torch.Tensor,
-                if_update: bool = False):
+                if_update: bool = True):
         utils.reset(self.encoder)
         for layer in self.network:
             utils.reset(layer)

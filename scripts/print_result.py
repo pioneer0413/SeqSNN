@@ -5,7 +5,8 @@ import json
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description="Print the result of a script execution.")
-    parser.add_argument("--root_dir_path", type=str, required=True, help="Root directory path where the result file is located.")
+    parser.add_argument("--root_dir_path", type=str, help="Root directory path where the result file is located.",
+                        default='/home/hwkang/SeqSNN/warehouse/cluster')
     
     args = parser.parse_args()
 
@@ -24,4 +25,4 @@ if __name__ == "__main__":
                 # if not result['test']['rse'] exist, then result['test']['rrse']
                 test_rse = result['test'].get('rse', result['test'].get('rrse'))
 
-                print(f"{dir_name}:\n{test_rse:.4f}")
+                print(f"{dir_name}: {test_rse:.4f}")
