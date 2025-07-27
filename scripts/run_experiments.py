@@ -53,12 +53,12 @@ def run_experiments():
     모든 실험 조합을 병렬로 실행
     """
     # 변수 정의
-    dataset_names = ['electricity', 'metr-la', 'pems-bay', 'solar']
+    dataset_names = ['electricity', 'solar']
     encoder_types = ['repeat', 'delta', 'conv']
-    horizons = [12, 24, 36]
-    seeds = [356, 5857]
+    horizons = [6, 24, 48, 96]
+    seeds = [333]
 
-    max_workers = 3  # 최대 동시 실행 작업 수
+    max_workers = 6  # 최대 동시 실행 작업 수
     
     # 실험 조합 생성
     experiments = list(product(dataset_names, encoder_types, horizons, seeds))
@@ -73,14 +73,14 @@ def run_experiments():
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         # 모든 실험 제출
         future_to_experiment = {
-            executor.submit(run_single_experiment, dataset_name, encoder_type, i+1, len(experiments)): 
-            (dataset_name, encoder_type)
-            for i, (dataset_name, encoder_type) in enumerate(experiments)
+            executor.submit(run_single_experiment, dataset_name, encoder_type, horizon, seed, i+1, len(experiments)): 
+            (dataset_name, encoder_type, horizon, seed)
+            for i, (dataset_name, encoder_type, horizon, seed) in enumerate(experiments)
         }
         
         # 완료된 실험 처리
         for future in as_completed(future_to_experiment):
-            dataset_name, encoder_type = future_to_experiment[future]
+            dataset_name, encoder_type, horizon, seed = future_to_experiment[future]
             try:
                 success = future.result()
                 if success:
@@ -88,7 +88,7 @@ def run_experiments():
                 else:
                     fail_count += 1
             except Exception as e:
-                print(f"✗ 실험 처리 중 오류: {dataset_name} + {encoder_type} - {str(e)}")
+                print(f"✗ 실험 처리 중 오류: dataset:{dataset_name} + encoder:{encoder_type} + horizon:{horizon} + seed:{seed} - {str(e)}")
                 fail_count += 1
     
     # 결과 요약

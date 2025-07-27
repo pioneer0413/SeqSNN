@@ -126,12 +126,12 @@ class SpikeRNN(nn.Module):
 
         if self.use_cluster:
             #print(input_size, num_pe_neuron)
-            self.dim_align = nn.Linear(input_size, input_size+num_pe_neuron)
+            self.dim_align = nn.Linear(input_size, self.__output_size)
 
     def forward(
         self,
         inputs: torch.Tensor,
-        if_update: bool = True,
+        if_update: bool = False,
     ):
         functional.reset_net(self)
 
@@ -143,49 +143,33 @@ class SpikeRNN(nn.Module):
                 inputs, self.cluster_assigner.cluster_emb
             )
             if if_update:
-                self.cluster_emb = nn.Parameter(cluster_emb, requires_grad=True)
+                self.cluster_assigner.cluster_emb = nn.Parameter(cluster_emb, requires_grad=True)
 
         hiddens = self.temporal_encoder(inputs)  # T, B, C, L
 
         '''
         Inject cluster probabilities
         '''
-        if self.use_cluster:
-            
-
-            '''
-            cluster_prob = cluster_prob.transpose(1, 0) # [K, C]
-            # [K, C] -> [K, 1, C, 1]
-            cluster_prob = cluster_prob.unsqueeze(1).unsqueeze(-1)  # K, 1, C, 1
-            # [K, 1, C, 1] -> [K, B, C, L] by repeat
-            cluster_prob = cluster_prob.repeat(1, hiddens.size(1), 1, hiddens.size(3))
-            '''
-
-            '''
-            Hard binarize cluster probabilities while keeping gradients calculable
-            '''
-            '''
-            #cluster_prob_soft = torch.sigmoid(cluster_prob)  # [K, B, C, L]
+        if self.use_cluster: # v1
+            self.cluster_prob = cluster_prob  # [B, C, K]
+            cluster_prob = cluster_prob.permute(2, 0, 1) # [K, B, C] < [B, C, K]
+            cluster_prob = cluster_prob.unsqueeze(-1)  # [K, B, C, 1]
+            cluster_prob = cluster_prob.repeat(1, 1, 1, hiddens.size(3))
             cluster_prob_soft = cluster_prob
-            #cluster_prob_hard = (cluster_prob > 0.5).float()  # [K, B, C, L]
             cluster_prob_hard = torch.bernoulli(cluster_prob_soft)  # [K, B, C, L] - Bernoulli sampling
-
             if self.use_ste:
                 cluster_prob = cluster_prob_soft + (cluster_prob_hard - cluster_prob_soft).detach()  # [K, B, C, L]
-
+            else:
+                cluster_prob = cluster_prob_soft
             hiddens = torch.cat((hiddens, cluster_prob), dim=0)  # T+K, B, C, L
-            '''
 
         hiddens = hiddens.transpose(-2, -1)  # T, B, L, C
         T, B, L, _ = hiddens.size()  # T, B, L, D
         if self.pe_type != "none":
             hiddens = self.pe(hiddens)  # T B L C'
 
-        if self.use_cluster:
+        if self.use_cluster and False: # v2
             self.cluster_prob = cluster_prob # [B, C, K]
-            '''
-            v2
-            '''
             cluster_prob_reshaped = cluster_prob.permute(2, 0, 1) # [K, B, C]
             cluster_prob_reshaped = cluster_prob_reshaped.unsqueeze(-1) # [K, B, C, 1]
             cluster_prob_reshaped = cluster_prob_reshaped.repeat(1, 1, 1, inputs.size(1))  # [K, B, C, L]
@@ -206,6 +190,29 @@ class SpikeRNN(nn.Module):
         hiddens = self.encoder(hiddens.flatten(0, 1)).reshape(T, B, L, -1)  # T B L D
         hiddens = self.init_lif(hiddens)
         hiddens = self.net(hiddens)  # T, B, L, D
+
+        if self.use_cluster and False: # v3
+            self.cluster_prob = cluster_prob  # [B, C, K]
+
+            cluster_prob = cluster_prob.permute(2, 0, 1)  # [K, B, C] <- [B, C, K]
+            cluster_prob = cluster_prob.unsqueeze(-1)  # [K, B, C, 1]
+            cluster_prob = cluster_prob.repeat(1, 1, 1, inputs.size(1))  # [K, B, C, L]
+            cluster_prob = cluster_prob.transpose(3, 2)  # [K, B, L, C]
+
+            cluster_hiddens = self.dim_align(cluster_prob)  # K, B, L, D - Dimension alignment
+
+            cluster_hiddens_soft = torch.sigmoid(cluster_hiddens)
+            cluster_hiddens_hard = torch.bernoulli(cluster_hiddens_soft)  # [K, B, L, D] - Bernoulli sampling
+            if self.use_ste:
+                cluster_hiddens = cluster_hiddens_soft + (cluster_hiddens_hard - cluster_hiddens_soft).detach()
+            else:
+                cluster_hiddens = cluster_hiddens_soft
+
+            #print(f"Cluster probabilities shape: {cluster_prob.shape}")
+            #print(f"Cluster hiddens shape: {cluster_hiddens.shape}, Hiddens shape: {hiddens.shape}")
+
+            hiddens = torch.cat((hiddens, cluster_hiddens), dim=0)  # T + K, B, L, D
+
         out = hiddens.mean(0)
         return out, out.mean(dim=1)  # B L D, B D
 

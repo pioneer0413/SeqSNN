@@ -149,7 +149,14 @@ class BaseRunner(nn.Module):
 
     def _init_scheduler(self, loader_length):
         """Setup learning rate scheduler"""
-        self.scheduler = None
+        self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
+            self.optimizer,
+            T_0=10,  # Number of epochs for the first restart
+            T_mult=2,  # A factor increases T_i after a restart
+            eta_min=1e-6,  # Minimum learning rate
+            last_epoch=-1,
+            verbose=True
+        )
 
     def _post_batch(
         self,
@@ -247,7 +254,8 @@ class BaseRunner(nn.Module):
                 train_loss.update(loss, np.prod(label.shape))
                 train_global_tracker.update(label, pred)
                 if self.scheduler is not None:
-                    self.scheduler.step()
+                    pass
+                    #self.scheduler.step()
                 iterations += 1
 
                 # post batch
@@ -282,10 +290,15 @@ class BaseRunner(nn.Module):
                 self.writer.add_scalar(f"{k}/train", v, epoch)
             self.writer.flush()
 
+            # Step the scheduler at the end of each epoch
+            if self.scheduler is not None:
+                self.scheduler.step()
+
             if validset is not None:
                 with torch.no_grad():
                     eval_res = self.evaluate(validset, epoch)
                 value = eval_res[self.observe]
+                
                 es = self.early_stop.step(value)
                 if es == EarlyStopStatus.BEST:
                     best_score = value
@@ -362,16 +375,20 @@ class BaseRunner(nn.Module):
         return self
 
     def _checkpoint(self, cur_epoch, best_res, checkpoint_dir=None):
+        checkpoint_data = {
+            "earlystop": self.early_stop.state_dict(),
+            "model": self.state_dict(),
+            "optim": self.optimizer.state_dict(),
+            "epoch": cur_epoch,
+            "best_res": best_res,
+            "best_params": self.best_params,
+            "best_network_params": self.best_network_params,
+        }
+        if self.scheduler is not None:
+            checkpoint_data["scheduler"] = self.scheduler.state_dict()
+        
         torch.save(
-            {
-                "earlystop": self.early_stop.state_dict(),
-                "model": self.state_dict(),
-                "optim": self.optimizer.state_dict(),
-                "epoch": cur_epoch,
-                "best_res": best_res,
-                "best_params": self.best_params,
-                "best_network_params": self.best_network_params,
-            },
+            checkpoint_data,
             self.checkpoint_dir / "resume.pth"
             if checkpoint_dir is None
             else checkpoint_dir / "resume.pth",
@@ -389,6 +406,8 @@ class BaseRunner(nn.Module):
             self.early_stop.load_state_dict(checkpoint["earlystop"])
             self.load_state_dict(checkpoint["model"])
             self.optimizer.load_state_dict(checkpoint["optim"])
+            if "scheduler" in checkpoint and self.scheduler is not None:
+                self.scheduler.load_state_dict(checkpoint["scheduler"])
             self.best_params = checkpoint["best_params"]
             self.best_network_params = checkpoint["best_network_params"]
             return checkpoint["epoch"], checkpoint["best_res"]

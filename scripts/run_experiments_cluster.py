@@ -12,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 import argparse
 
-def run_single_experiment(dataset_name, encoder_type, gpu_id, horizon, seed, n_cluster, experiment_id, total_experiments):
+def run_single_experiment(dataset_name, encoder_type, gpu_id, horizon, seed, n_cluster, patience, post_id, experiment_id, total_experiments):
     """
     단일 실험을 실행하는 함수
     """
@@ -28,7 +28,8 @@ def run_single_experiment(dataset_name, encoder_type, gpu_id, horizon, seed, n_c
         f'--runtime.seed={seed}',
         f'--network.gpu_id={gpu_id}',
         f'--network.n_cluster={n_cluster}',
-        f'--runtime.output_dir=./warehouse/cluster/spikernn_{dataset_name}_encoder={encoder_type}_horizon={horizon}_baseline_seed={seed}_n_cluster={n_cluster}'
+        f'--runner.early_stop={patience}',
+        f'--runtime.output_dir=./warehouse/cluster/spikernn_{dataset_name}_encoder={encoder_type}_horizon={horizon}_baseline_seed={seed}_n_cluster={n_cluster}_post_id={post_id}'
     ]
     
     print(f"명령어: {' '.join(cmd)}")
@@ -52,16 +53,16 @@ def run_single_experiment(dataset_name, encoder_type, gpu_id, horizon, seed, n_c
         return False
 
 
-def run_experiments(gpu_ids, max_workers=None):
+def run_experiments(dataset_names, gpu_ids, max_workers=None, patience=30, post_id=0):
     """
     모든 실험 조합을 병렬로 실행
     """
     # 변수 정의
-    dataset_names = ['electricity', 'metr-la', 'pems-bay', 'solar']
+    #dataset_names = ['electricity', 'metr-la', 'pems-bay', 'solar']
     encoder_types = ['repeat', 'delta', 'conv']
     #cluster_loss_weights = [1e-5, 1e-8, 1e-10]  # 클러스터 손실 가중치
     horizons = [6, 24, 48, 96]  # 예측 호라이즌
-    seeds = [40]
+    seeds = [222,333]
     cluster_list = [3]
     
     # max_workers를 GPU 개수로 자동 설정 (지정되지 않은 경우)
@@ -99,7 +100,7 @@ def run_experiments(gpu_ids, max_workers=None):
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         # 모든 실험 제출
         future_to_experiment = {
-            executor.submit(run_single_experiment, dataset_name, encoder_type, gpu_id, horizon, seed, n_cluster, i+1, len(experiments)): 
+            executor.submit(run_single_experiment, dataset_name, encoder_type, gpu_id, horizon, seed, n_cluster, patience, post_id, i+1, len(experiments)): 
             (dataset_name, encoder_type, gpu_id, horizon, seed, n_cluster)
             for i, (dataset_name, encoder_type, gpu_id, horizon, seed, n_cluster) in enumerate(experiments)
         }
@@ -133,12 +134,17 @@ def main():
                         help='사용할 GPU ID들을 쉼표로 구분하여 입력 (예: 0,1,2)')
     parser.add_argument('--max_workers', type=int, default=None,
                         help='최대 동시 실행 작업 수 (기본값: GPU 개수)')
+    parser.add_argument('--patience', type=int, default=30)
+    parser.add_argument('--post_id', type=int, default=0,)
+    parser.add_argument('--dataset_names', type=str, default='electricity,metr-la,pems-bay,solar',
+                        help='실험에 사용할 데이터셋 이름들을 쉼표로 구분하여 입력 (예: electricity,metr-la,pems-bay,solar)')
     
     args = parser.parse_args()
     
     # GPU ID 파싱
     try:
         gpu_ids = [int(gpu_id.strip()) for gpu_id in args.gpu_ids.split(',')]
+        dataset_names = [name.strip() for name in args.dataset_names.split(',')]
     except ValueError:
         print("오류: GPU ID는 숫자여야 합니다 (예: 0,1,2)")
         sys.exit(1)
@@ -151,7 +157,7 @@ def main():
     print(f"Max workers: {args.max_workers if args.max_workers else len(gpu_ids)}")
     
     # 실험 실행
-    run_experiments(gpu_ids, args.max_workers)
+    run_experiments(dataset_names, gpu_ids, args.max_workers, args.patience, args.post_id)
 
 
 if __name__ == "__main__":
