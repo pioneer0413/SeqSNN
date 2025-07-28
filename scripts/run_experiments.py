@@ -11,7 +11,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 
-target_algorithm = 'spikernn'
+target_algorithm = 'snn'
 
 def run_single_experiment(dataset_name, encoder_type, horizon, seed, experiment_id, total_experiments):
     """
@@ -47,6 +47,15 @@ def run_single_experiment(dataset_name, encoder_type, horizon, seed, experiment_
             f'--runtime.seed={seed}',
             f'--runtime.output_dir=./warehouse/with_pe/ispikformer_{dataset_name}_encoder={encoder_type}_horizon={horizon}_baseline_seed={seed}'
         ]
+    elif target_algorithm == 'snn':
+        cmd = [
+            sys.executable, '-m', 'SeqSNN.entry.tsforecast',
+            f'exp/forecast/snn/snn2d_{dataset_name}.yml',
+            f'--network.encoder_type={encoder_type}',
+            f'--data.horizon={horizon}',
+            f'--runtime.seed={seed}',
+            f'--runtime.output_dir=./warehouse/with_pe/snn_{dataset_name}_encoder={encoder_type}_horizon={horizon}_baseline_seed={seed}'
+        ]
     
     print(f"명령어: {' '.join(cmd)}")
     
@@ -77,7 +86,7 @@ def run_experiments():
     dataset_names = ['electricity', 'solar']
     encoder_types = ['repeat', 'delta', 'conv']
     horizons = [6, 24, 48, 96]
-    seeds = [333]
+    seeds = [222]
 
     max_workers = 6  # 최대 동시 실행 작업 수
     
