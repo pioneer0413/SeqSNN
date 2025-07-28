@@ -41,6 +41,8 @@ network:
   use_cluster: True  # Enable clustering
   use_ste: True
   gpu_id: 2
+  use_all_zero: False  # Use all-zero cluster probabilities
+  use_all_random: False  # Use all-random cluster probabilities
 
 runtime:
   seed: 39

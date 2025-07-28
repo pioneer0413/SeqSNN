@@ -12,12 +12,19 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 import argparse
 
-def run_single_experiment(dataset_name, encoder_type, gpu_id, horizon, seed, n_cluster, patience, post_id, experiment_id, total_experiments):
+def run_single_experiment(dataset_name, encoder_type, gpu_id, horizon, seed, n_cluster, patience, post_id, experiment_id, total_experiments, use_all_zero=False, use_all_random=False):
     """
     단일 실험을 실행하는 함수
     """
     print(f"\n[{experiment_id}/{total_experiments}] 실험 시작: {dataset_name} + {encoder_type} + GPU{gpu_id} + horizon={horizon} + seed={seed}")
 
+    # 출력 디렉토리 이름 구성
+    output_dir_suffix = f"_post_id={post_id}"
+    if use_all_zero:
+        output_dir_suffix += "_all_zero"
+    if use_all_random:
+        output_dir_suffix += "_all_random"
+    
     # 명령어 구성
     cmd = [
         sys.executable, '-m', 'SeqSNN.entry.tsforecast',
@@ -29,8 +36,14 @@ def run_single_experiment(dataset_name, encoder_type, gpu_id, horizon, seed, n_c
         f'--network.gpu_id={gpu_id}',
         f'--network.n_cluster={n_cluster}',
         f'--runner.early_stop={patience}',
-        f'--runtime.output_dir=./warehouse/cluster/spikernn_{dataset_name}_encoder={encoder_type}_horizon={horizon}_baseline_seed={seed}_n_cluster={n_cluster}_post_id={post_id}'
+        f'--runtime.output_dir=./warehouse/cluster/spikernn_{dataset_name}_encoder={encoder_type}_horizon={horizon}_baseline_seed={seed}_n_cluster={n_cluster}{output_dir_suffix}'
     ]
+    
+    # 클러스터 설정 옵션 추가
+    if use_all_zero:
+        cmd.append('--network.use_all_zero=True')
+    if use_all_random:
+        cmd.append('--network.use_all_random=True')
     
     print(f"명령어: {' '.join(cmd)}")
     
@@ -53,7 +66,7 @@ def run_single_experiment(dataset_name, encoder_type, gpu_id, horizon, seed, n_c
         return False
 
 
-def run_experiments(dataset_names, gpu_ids, max_workers=None, patience=30, post_id=0):
+def run_experiments(dataset_names, gpu_ids, max_workers=None, patience=30, post_id=0, use_all_zero=False, use_all_random=False):
     """
     모든 실험 조합을 병렬로 실행
     """
@@ -100,7 +113,7 @@ def run_experiments(dataset_names, gpu_ids, max_workers=None, patience=30, post_
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         # 모든 실험 제출
         future_to_experiment = {
-            executor.submit(run_single_experiment, dataset_name, encoder_type, gpu_id, horizon, seed, n_cluster, patience, post_id, i+1, len(experiments)): 
+            executor.submit(run_single_experiment, dataset_name, encoder_type, gpu_id, horizon, seed, n_cluster, patience, post_id, i+1, len(experiments), use_all_zero, use_all_random): 
             (dataset_name, encoder_type, gpu_id, horizon, seed, n_cluster)
             for i, (dataset_name, encoder_type, gpu_id, horizon, seed, n_cluster) in enumerate(experiments)
         }
@@ -138,6 +151,10 @@ def main():
     parser.add_argument('--post_id', type=int, default=0,)
     parser.add_argument('--dataset_names', type=str, default='electricity,metr-la,pems-bay,solar',
                         help='실험에 사용할 데이터셋 이름들을 쉼표로 구분하여 입력 (예: electricity,metr-la,pems-bay,solar)')
+    parser.add_argument('--use_all_zero', action='store_true', default=False,
+                        help='클러스터 확률을 모두 0으로 설정')
+    parser.add_argument('--use_all_random', action='store_true', default=False,
+                        help='클러스터 확률을 모두 랜덤으로 설정')
     
     args = parser.parse_args()
     
@@ -155,9 +172,11 @@ def main():
     
     print(f"GPU IDs: {gpu_ids}")
     print(f"Max workers: {args.max_workers if args.max_workers else len(gpu_ids)}")
+    print(f"Use all zero: {args.use_all_zero}")
+    print(f"Use all random: {args.use_all_random}")
     
     # 실험 실행
-    run_experiments(dataset_names, gpu_ids, args.max_workers, args.patience, args.post_id)
+    run_experiments(dataset_names, gpu_ids, args.max_workers, args.patience, args.post_id, args.use_all_zero, args.use_all_random)
 
 
 if __name__ == "__main__":

@@ -45,11 +45,11 @@ if __name__ == "__main__":
                     if pattern in dir_name:
                         horizon = dir_name.split('_')[3].split('=')[1]
                         horizon = f'{int(horizon):02}'
-                        seed = dir_name.split('_')[-1].split('=')[1]
-                        pattern_results[pattern].append((dir_name, test_rse, horizon, seed))
+                        #seed = dir_name.split('_')[-1].split('=')[1]
+                        pattern_results[pattern].append((dir_name, test_rse, horizon))
                         # sort by horizon
                         pattern_results[pattern].sort(key=lambda x: (x[2]))
     for pattern, results in pattern_results.items():
         print(f"Results for {pattern}:")
-        for dir_name, test_rse, horizon, seed in results:
-            print(f"  {dir_name}: {test_rse:.4f} (horizon: {horizon}, seed: {seed})")
+        for dir_name, test_rse, horizon in results:
+            print(f"  {dir_name}: {test_rse:.4f} (horizon: {horizon})")

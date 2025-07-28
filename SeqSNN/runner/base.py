@@ -241,7 +241,7 @@ class BaseRunner(nn.Module):
 
                 loss = self.loss_fn(label.squeeze(-1), pred.squeeze(-1))
 
-                if hasattr(self.network, "use_cluster") and self.network.use_cluster:
+                if hasattr(self.network, "use_cluster") and self.network.use_cluster and self.network.use_all_zero is False and self.network.use_all_random is False:
                     simMatrix = get_similarity_matrix_update(batch_data=data)
                     loss_s = similarity_loss_batch(prob=self.network.cluster_prob, simMatrix=simMatrix)
                     loss += loss_s * self.beta
@@ -450,7 +450,8 @@ class BaseRunner(nn.Module):
                 # print(pred, label)
                 loss = self.loss_fn(label.squeeze(-1), pred.squeeze(-1))
 
-                if hasattr(self.network, "use_cluster") and self.network.use_cluster:
+                if hasattr(self.network, "use_cluster") and self.network.use_cluster and self.network.use_all_zero is False and self.network.use_all_random is False:
+                    print("Using cluster loss")
                     simMatrix = get_similarity_matrix_update(batch_data=data)
                     loss_s = similarity_loss_batch(prob=self.network.cluster_prob, simMatrix=simMatrix)
                     loss += loss_s * self.beta

@@ -60,6 +60,8 @@ class SpikeRNN(nn.Module):
         use_ste: bool = False,  # Use Straight-Through Estimator for cluster probabilities
         gpu_id: Optional[int] = None,
         n_cluster: Optional[int] = 3,  # Number of clusters for clustering
+        use_all_zero: bool = False,  # Use all-zero cluster probabilities
+        use_all_random: bool = False,  # Use all-random cluster probabilities
     ):
         super().__init__()
         self.pe_type = pe_type
@@ -71,6 +73,8 @@ class SpikeRNN(nn.Module):
         self.use_ste = use_ste
         self.gpu_id = gpu_id
         self.n_cluster = n_cluster
+        self.use_all_zero = use_all_zero
+        self.use_all_random = use_all_random
 
         self.pe = PositionEmbedding(
             pe_type=pe_type,
@@ -161,6 +165,15 @@ class SpikeRNN(nn.Module):
                 cluster_prob = cluster_prob_soft + (cluster_prob_hard - cluster_prob_soft).detach()  # [K, B, C, L]
             else:
                 cluster_prob = cluster_prob_soft
+
+            if self.use_all_zero:
+                cluster_prob = torch.zeros_like(cluster_prob)
+                #print('check cluster_prob min-max', cluster_prob.min(), cluster_prob.max())
+            elif self.use_all_random:
+                assert self.use_all_zero is False, "Cannot use both all-zero and all-random cluster probabilities."
+                cluster_prob = torch.rand_like(cluster_prob)
+                #print('check cluster_prob min-max', cluster_prob.min(), cluster_prob.max())
+
             hiddens = torch.cat((hiddens, cluster_prob), dim=0)  # T+K, B, C, L
 
         hiddens = hiddens.transpose(-2, -1)  # T, B, L, C
