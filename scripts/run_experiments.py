@@ -11,6 +11,8 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 
+target_algorithm = 'spikernn'
+
 def run_single_experiment(dataset_name, encoder_type, horizon, seed, experiment_id, total_experiments):
     """
     단일 실험을 실행하는 함수
@@ -18,14 +20,33 @@ def run_single_experiment(dataset_name, encoder_type, horizon, seed, experiment_
     print(f"\n[{experiment_id}/{total_experiments}] 실험 시작: {dataset_name} + {encoder_type}")
     
     # 명령어 구성
-    cmd = [
-        sys.executable, '-m', 'SeqSNN.entry.tsforecast',
-        f'exp/forecast/spikernn/spikernn_{dataset_name}.yml',
-        f'--network.encoder_type={encoder_type}',
-        f'--data.horizon={horizon}',
-        f'--runtime.seed={seed}',
-        f'--runtime.output_dir=./warehouse/with_pe/spikernn_{dataset_name}_encoder={encoder_type}_horizon={horizon}_baseline_seed={seed}'
-    ]
+    if target_algorithm == 'spikernn':
+        cmd = [
+            sys.executable, '-m', 'SeqSNN.entry.tsforecast',
+            f'exp/forecast/spikernn/spikernn_{dataset_name}.yml',
+            f'--network.encoder_type={encoder_type}',
+            f'--data.horizon={horizon}',
+            f'--runtime.seed={seed}',
+            f'--runtime.output_dir=./warehouse/with_pe/spikernn_{dataset_name}_encoder={encoder_type}_horizon={horizon}_baseline_seed={seed}'
+        ]
+    elif target_algorithm == 'spiketcn':
+        cmd = [
+            sys.executable, '-m', 'SeqSNN.entry.tsforecast',
+            f'exp/forecast/tcn/spiketcn2d_{dataset_name}.yml',
+            f'--network.encoder_type={encoder_type}',
+            f'--data.horizon={horizon}',
+            f'--runtime.seed={seed}',
+            f'--runtime.output_dir=./warehouse/with_pe/spiketcn_{dataset_name}_encoder={encoder_type}_horizon={horizon}_baseline_seed={seed}'
+        ]
+    elif target_algorithm == 'ispikformer':
+        cmd = [
+            sys.executable, '-m', 'SeqSNN.entry.tsforecast',
+            f'exp/forecast/ispikformer/ispikformer_{dataset_name}.yml',
+            f'--network.encoder_type={encoder_type}',
+            f'--data.horizon={horizon}',
+            f'--runtime.seed={seed}',
+            f'--runtime.output_dir=./warehouse/with_pe/ispikformer_{dataset_name}_encoder={encoder_type}_horizon={horizon}_baseline_seed={seed}'
+        ]
     
     print(f"명령어: {' '.join(cmd)}")
     
