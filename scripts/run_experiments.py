@@ -11,7 +11,19 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 
-target_algorithm = 'snn'
+target_algorithm = 'spikernn'
+patience = 200
+
+"""
+모든 실험 조합을 병렬로 실행
+"""
+# 변수 정의
+dataset_names = ['electricity']
+encoder_types = ['repeat', 'delta', 'conv']
+horizons = [6, 96]
+seeds = [707, 808]
+
+max_workers = 6  # 최대 동시 실행 작업 수
 
 def run_single_experiment(dataset_name, encoder_type, horizon, seed, experiment_id, total_experiments):
     """
@@ -27,7 +39,8 @@ def run_single_experiment(dataset_name, encoder_type, horizon, seed, experiment_
             f'--network.encoder_type={encoder_type}',
             f'--data.horizon={horizon}',
             f'--runtime.seed={seed}',
-            f'--runtime.output_dir=./warehouse/with_pe/spikernn_{dataset_name}_encoder={encoder_type}_horizon={horizon}_baseline_seed={seed}'
+            f'--runner.early_stop={patience}',
+            f'--runtime.output_dir=./warehouse/patience=200/spikernn_{dataset_name}_encoder={encoder_type}_horizon={horizon}_baseline_seed={seed}'
         ]
     elif target_algorithm == 'spiketcn':
         cmd = [
@@ -79,16 +92,6 @@ def run_single_experiment(dataset_name, encoder_type, horizon, seed, experiment_
 
 
 def run_experiments():
-    """
-    모든 실험 조합을 병렬로 실행
-    """
-    # 변수 정의
-    dataset_names = ['electricity', 'solar']
-    encoder_types = ['repeat', 'delta', 'conv']
-    horizons = [6, 24, 48, 96]
-    seeds = [222]
-
-    max_workers = 6  # 최대 동시 실행 작업 수
     
     # 실험 조합 생성
     experiments = list(product(dataset_names, encoder_types, horizons, seeds))
@@ -131,4 +134,22 @@ def run_experiments():
     print(f"성공률: {success_count/len(experiments)*100:.1f}%")
 
 if __name__ == "__main__":
+
+    '''
+    시작하기 전, 현재 스크립트의 모든 설정값 확인하고 함수 실행
+    '''
+    print("실험을 시작합니다...")
+    # 현재 스크립트의 설정값 출력
+    print(f"타겟 알고리즘: {target_algorithm}")
+    print(f"조기 중단 기준: {patience} 에폭")
+    print("실험 조합:")
+    print(f"데이터셋: {dataset_names}")
+    print(f"인코더 타입: {encoder_types}")
+    print(f"호라이즌: {horizons}")
+    print(f"시드: {seeds}")
+    print("병렬 실행 최대 작업 수:", max_workers)
+    print("========================================")
+    # stdin으로 실행 여부 확인
+    input("계속하려면 Enter 키를 누르세요...")
+
     run_experiments()

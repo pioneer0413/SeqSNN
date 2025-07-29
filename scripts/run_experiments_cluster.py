@@ -75,7 +75,7 @@ def run_experiments(dataset_names, gpu_ids, max_workers=None, patience=30, post_
     encoder_types = ['repeat', 'delta', 'conv']
     #cluster_loss_weights = [1e-5, 1e-8, 1e-10]  # 클러스터 손실 가중치
     horizons = [6, 24, 48, 96]  # 예측 호라이즌
-    seeds = [222,333]
+    seeds = [356,5857]
     cluster_list = [3]
     
     # max_workers를 GPU 개수로 자동 설정 (지정되지 않은 경우)
