@@ -12,16 +12,16 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 
 target_algorithm = 'spikernn'
-patience = 200
+patience = 10
 
 """
 모든 실험 조합을 병렬로 실행
 """
 # 변수 정의
-dataset_names = ['electricity']
-encoder_types = ['repeat', 'delta', 'conv']
-horizons = [6, 96]
-seeds = [707, 808]
+dataset_names = ['solar']
+encoder_types = ['delta', 'conv']
+horizons = [6, 24, 48, 96]
+seeds = [808, 909]
 
 max_workers = 6  # 최대 동시 실행 작업 수
 
@@ -40,7 +40,8 @@ def run_single_experiment(dataset_name, encoder_type, horizon, seed, experiment_
             f'--data.horizon={horizon}',
             f'--runtime.seed={seed}',
             f'--runner.early_stop={patience}',
-            f'--runtime.output_dir=./warehouse/patience=200/spikernn_{dataset_name}_encoder={encoder_type}_horizon={horizon}_baseline_seed={seed}'
+            f'--network.num_steps=7',
+            f'--runtime.output_dir=./warehouse/with_pe/spikernn_{dataset_name}_encoder={encoder_type}_horizon={horizon}_baseline_seed={seed}_num_steps=7'
         ]
     elif target_algorithm == 'spiketcn':
         cmd = [
