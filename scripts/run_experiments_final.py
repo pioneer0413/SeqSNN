@@ -128,6 +128,9 @@ if __name__=="__main__":
     # 베이스라인
     parser.add_argument('--more_step', action='store_true', default=False)
 
+    # 스크립트만 생성
+    parser.add_argument('--script_only', action='store_true', default=False, help='스크립트만 생성하고 실행하지 않음')
+
     args = parser.parse_args()
 
     # <<< 명령행 인자 정의 끝
@@ -204,5 +207,16 @@ if __name__=="__main__":
 
         commands.append(cmd)
 
-    # 병렬로 실험 실행
-    run_parallel_experiments(commands, args.max_workers)
+    
+    if args.script_only:
+        # 스크립트만 생성
+        script_path = 'scripts/run_experiments.sh'
+        with open(script_path, 'w') as script_file:
+            for cmd in commands:
+                script_file.write(' '.join(cmd) + '\n')
+        print(f"실험 스크립트가 생성되었습니다: {script_path}")
+        #print("스크립트를 실행하려면 다음 명령어를 사용하세요: bash run_experiments.sh")
+
+    else:
+        # 병렬로 실험 실행
+        run_parallel_experiments(commands, args.max_workers)
