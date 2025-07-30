@@ -145,7 +145,7 @@ if __name__=="__main__":
         args.encoder_types,
         args.horizons,
         args.seeds,
-        args.gpu_ids,
+        #args.gpu_ids,
         args.n_clusters
     ))
 
@@ -172,8 +172,11 @@ if __name__=="__main__":
     print(f"클러스터 사용: {args.use_cluster}")
     input("실험을 시작하려면 Enter 키를 누르세요...")
 
+    # gpu_ids는 원소를 반복하면서 total_experiments 수 만큼으로 리스트 생성(예: [0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, ...])
+    gpu_ids = (args.gpu_ids * (total_experiments // len(args.gpu_ids) + 1))[:total_experiments]
+
     commands = []
-    for method, dataset_name, encoder_type, horizon, seed, gpu_id, n_cluster in combinations:
+    for (method, dataset_name, encoder_type, horizon, seed, n_cluster), gpu_id in zip(combinations, gpu_ids):
         if args.use_cluster:
             if dataset_name == 'electricity':
                 patience = args.patience_electricity if args.patience_electricity != args.patience_common else args.patience_common
