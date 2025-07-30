@@ -402,7 +402,7 @@ class BaseRunner(nn.Module):
     def _resume(self):
         if (self.checkpoint_dir / "resume.pth").exists():
             print(f"Resume from {self.checkpoint_dir / 'resume.pth'}", __name__)
-            checkpoint = torch.load(self.checkpoint_dir / "resume.pth")
+            checkpoint = torch.load(self.checkpoint_dir / "resume.pth", weights_only=False)
             self.early_stop.load_state_dict(checkpoint["earlystop"])
             self.load_state_dict(checkpoint["model"])
             self.optimizer.load_state_dict(checkpoint["optim"])

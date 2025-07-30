@@ -40,14 +40,17 @@ def generate_single_command_cluster(config_path, method, dataset_name, encoder_t
         f'--runtime.seed={seed}',
         f'--network.n_cluster={n_cluster}',
         f'--runner.early_stop={patience}',
-        f'--runtime.output_dir={output_dir}'
     ]
 
     assert not (use_all_zero and use_all_random), "use_all_zero와 use_all_random은 동시에 사용할 수 없습니다."
     if use_all_zero:
         cmd.append('--network.use_all_zero=True')
+        output_dir += '_all_zero'
     if use_all_random:
         cmd.append('--network.use_all_random=True')
+        output_dir += '_all_random'
+
+    cmd.append(f'--runtime.output_dir={output_dir}')
 
     return cmd
 
