@@ -10,6 +10,8 @@ from ...module.positional_encoding import PositionEmbedding
 from ...module.spike_encoding import SpikeEncoder
 from ...module.spike_attention import Block
 
+from ...module.clustering import Cluster_assigner
+
 tau = 2.0  # beta = 1 - 1/tau
 backend = "torch"
 detach_reset = True
@@ -65,7 +67,13 @@ class Spikformer(nn.Module):
         qk_scale: float = 0.125,
         input_size: Optional[int] = None,
         weight_file: Optional[Path] = None,
+        encoder_type: Optional[str] = "conv",
+        use_cluster: bool = False,
+        use_ste: bool = False,  # Use Straight-Through Estimator for cluster probabilities
+        use_all_zero: bool = False,  # Use all-zero cluster probabilities
+        use_all_random: bool = False,  # Use all-random cluster probabilities
         gpu_id: Optional[int] = None,
+        n_cluster: Optional[int] = 3,  # Number of clusters for clustering
     ):
         super().__init__()
         self.dim = dim
@@ -76,8 +84,13 @@ class Spikformer(nn.Module):
         self.pe_mode = pe_mode
         self.num_pe_neuron = num_pe_neuron
         self.gpu_id = gpu_id
+        self.use_cluster = use_cluster
+        self.use_ste = use_ste
+        self.n_cluster = n_cluster
+        self.use_all_zero = use_all_zero
+        self.use_all_random = use_all_random
 
-        self.temporal_encoder = SpikeEncoder[self._snn_backend]["conv"](num_steps)
+        self.temporal_encoder = SpikeEncoder[self._snn_backend][encoder_type](num_steps)
         self.pe = PositionEmbedding(
             pe_type=pe_type,
             pe_mode=pe_mode,
@@ -119,6 +132,20 @@ class Spikformer(nn.Module):
             ]
         )
 
+        '''
+        Cluster assigner
+        '''
+        if self.use_cluster:
+            self.input_size = input_size
+            self.max_length = max_length
+            self.cluster_assigner = Cluster_assigner(
+                n_vars=input_size,
+                n_cluster=self.n_cluster,  # This is a dummy value, will be set later
+                seq_len=max_length,
+                d_model=512,
+                device=self.gpu_id
+            )
+
         self.apply(self._init_weights)
 
     def _init_weights(self, m):
@@ -130,10 +157,38 @@ class Spikformer(nn.Module):
             nn.init.constant_(m.weight, 1.0)
             nn.init.constant_(m.bias, 0.0)
 
-    def forward(self, x):
+    def forward(self, x, if_update: bool = False):
         functional.reset_net(self)
 
+        '''
+        Get cluster probabilities and embeddings
+        '''
+        if self.use_cluster:
+            cluster_prob, cluster_emb = self.cluster_assigner(
+                x, self.cluster_assigner.cluster_emb
+            )
+            if if_update:
+                self.cluster_assigner.cluster_emb = nn.Parameter(cluster_emb, requires_grad=True)
+
         x = self.temporal_encoder(x)  # B L C -> T B C L
+
+        '''
+        Inject cluster probabilities
+        '''
+        if self.use_cluster: # v1
+            self.cluster_prob = cluster_prob  # [B, C, K]
+            cluster_prob = cluster_prob.permute(2, 0, 1) # [K, B, C] < [B, C, K]
+            cluster_prob = cluster_prob.unsqueeze(-1)  # [K, B, C, 1]
+            cluster_prob = cluster_prob.repeat(1, 1, 1, x.size(3))
+            cluster_prob_soft = cluster_prob
+            cluster_prob_hard = torch.bernoulli(cluster_prob_soft)  # [K, B, C, L] - Bernoulli sampling
+            if self.use_ste:
+                cluster_prob = cluster_prob_soft + (cluster_prob_hard - cluster_prob_soft).detach()  # [K, B, C, L]
+            else:
+                cluster_prob = cluster_prob_soft
+
+            x = torch.cat((x, cluster_prob), dim=0)  # T+K, B, C, L
+
         x = x.transpose(-2, -1)  # T B L C
         if self.pe_type != "none":
             x = self.pe(x)  # T B L C'

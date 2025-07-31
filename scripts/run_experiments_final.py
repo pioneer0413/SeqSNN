@@ -219,7 +219,7 @@ if __name__=="__main__":
         script_path = 'scripts/run_experiments.sh'
         with open(script_path, 'w') as script_file:
             for cmd in commands:
-                script_file.write(' '.join(cmd) + '\n')
+                script_file.write(' '.join(cmd) + '; \\' + '\n')
         print(f"실험 스크립트가 생성되었습니다: {script_path}")
         #print("스크립트를 실행하려면 다음 명령어를 사용하세요: bash run_experiments.sh")
 
