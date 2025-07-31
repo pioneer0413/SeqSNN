@@ -17,7 +17,7 @@ if __name__ == "__main__":
 
     result_file_paths = [os.path.join(args.root_dir_path, dir_name, _result_path) for dir_name in dir_names]
 
-    algorithm_names = ['spikernn']
+    algorithm_names = ['spikernn', 'spiketcn', 'ispikformer', 'spikformer']
     dataset_names = ['electricity', 'solar']
     encoder_names = ['conv', 'delta', 'repeat']
     
