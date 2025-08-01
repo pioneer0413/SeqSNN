@@ -236,7 +236,7 @@ class SpikeTemporalConvNet2D(nn.Module):
         Inject cluster probabilities
         '''
         if self.use_cluster:
-            #inputs = inputs.permute(1, 0, 2, 3) # T, B, C, L
+            inputs = inputs.permute(1, 0, 2, 3) # T, B, C, L
 
             self.cluster_prob = cluster_prob
             cluster_prob = cluster_prob.permute(2, 0, 1) # [K, B, C] < [B, C, K]
