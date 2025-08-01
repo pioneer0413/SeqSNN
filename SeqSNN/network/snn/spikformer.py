@@ -74,6 +74,7 @@ class Spikformer(nn.Module):
         use_all_random: bool = False,  # Use all-random cluster probabilities
         gpu_id: Optional[int] = None,
         n_cluster: Optional[int] = 3,  # Number of clusters for clustering
+        d_model: Optional[int] = 512,  # Dimension of the model for clustering
     ):
         super().__init__()
         self.dim = dim
@@ -142,7 +143,7 @@ class Spikformer(nn.Module):
                 n_vars=input_size,
                 n_cluster=self.n_cluster,  # This is a dummy value, will be set later
                 seq_len=max_length,
-                d_model=512,
+                d_model=d_model,
                 device=self.gpu_id
             )
 

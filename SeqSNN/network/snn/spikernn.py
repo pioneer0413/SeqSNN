@@ -62,6 +62,7 @@ class SpikeRNN(nn.Module):
         n_cluster: Optional[int] = 3,  # Number of clusters for clustering
         use_all_zero: bool = False,  # Use all-zero cluster probabilities
         use_all_random: bool = False,  # Use all-random cluster probabilities
+        d_model: Optional[int] = 512,  # Dimension of the model for clustering
     ):
         super().__init__()
         self.pe_type = pe_type
@@ -97,7 +98,7 @@ class SpikeRNN(nn.Module):
                 n_vars=input_size,
                 n_cluster=self.n_cluster,  # This is a dummy value, will be set later
                 seq_len=max_length,
-                d_model=512,
+                d_model=d_model,
                 device=self.gpu_id
             )
 

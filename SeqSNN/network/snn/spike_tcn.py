@@ -141,6 +141,7 @@ class SpikeTemporalConvNet2D(nn.Module):
         use_ste: bool = False,  # Use Straight-Through Estimator for cluster probabilities
         gpu_id: Optional[int] = None,
         n_cluster: Optional[int] = 3,  # Number of clusters for clustering
+        d_model: Optional[int] = 512,  # Dimension of the model for clustering
     ):
         """
         Args:
@@ -157,6 +158,8 @@ class SpikeTemporalConvNet2D(nn.Module):
         self.use_ste = use_ste
         self.gpu_id = gpu_id
         self.n_cluster = n_cluster
+        self.use_all_zero = False  # Use all-zero cluster probabilities
+        self.use_all_random = False  # Use all-random cluster probabilities
 
         self.num_steps = num_steps
         self.pe = PositionEmbedding(
@@ -179,7 +182,7 @@ class SpikeTemporalConvNet2D(nn.Module):
                 n_vars=input_size,
                 n_cluster=self.n_cluster,  # This is a dummy value, will be set later
                 seq_len=max_length,
-                d_model=512,
+                d_model=d_model,
                 device=self.gpu_id
             )
         layers = []
@@ -212,7 +215,7 @@ class SpikeTemporalConvNet2D(nn.Module):
             self.__output_size = input_size
 
     def forward(self, inputs: torch.Tensor,
-                if_update: bool = True):
+                if_update: bool = False):
         utils.reset(self.encoder)
         for layer in self.network:
             utils.reset(layer)

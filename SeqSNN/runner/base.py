@@ -42,7 +42,7 @@ class BaseRunner(nn.Module):
         model_path: Optional[str] = None,
         output_dir: Optional[Path] = None,
         checkpoint_dir: Optional[Path] = None,
-        beta: float = 1e-5,
+        beta: float = 2e-6,
     ) -> None:
         super().__init__()
         if not hasattr(self, "hyper_paras"):

@@ -47,6 +47,7 @@ network:
   use_ste: True
   gpu_id: 2
   n_cluster: 3
+  d_model: 512
 
 runtime: 
   seed: 40

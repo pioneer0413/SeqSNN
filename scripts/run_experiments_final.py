@@ -21,9 +21,9 @@ def load_config(use_cluster, method, dataset_name):
         config = yaml.safe_load(file)
     return config, config_path
 
-def generate_single_command_cluster(config_path, method, dataset_name, encoder_type, gpu_id, horizon, seed, n_cluster, patience, use_all_zero=False, use_all_random=False):
+def generate_single_command_cluster(config_path, method, dataset_name, encoder_type, gpu_id, horizon, seed, n_cluster, d_model, patience, use_all_zero=False, use_all_random=False):
     
-    output_dir = f'./warehouse/cluster/{method}_{dataset_name}_encoder={encoder_type}_horizon={horizon}_baseline_seed={seed}_n_cluster={n_cluster}'
+    output_dir = f'./warehouse/cluster/{method}_{dataset_name}_encoder={encoder_type}_horizon={horizon}_baseline_seed={seed}_n_cluster={n_cluster}_d_model={d_model}'
 
     result_path = f'{output_dir}/checkpoints/res.json'
 
@@ -40,6 +40,7 @@ def generate_single_command_cluster(config_path, method, dataset_name, encoder_t
         f'--runtime.seed={seed}',
         f'--network.n_cluster={n_cluster}',
         f'--runner.early_stop={patience}',
+        f'--network.d_model={d_model}',
     ]
 
     assert not (use_all_zero and use_all_random), "use_all_zero와 use_all_random은 동시에 사용할 수 없습니다."
@@ -127,6 +128,7 @@ if __name__=="__main__":
     parser.add_argument('--use_all_zero', action='store_true', default=False)
     parser.add_argument('--use_all_random', action='store_true', default=False)
     parser.add_argument('--n_clusters', type=int, nargs='+', default=[3])
+    parser.add_argument('--d_model', type=int, nargs='+', default=512)  # 클러스터링 모델의 차원
 
     # 베이스라인
     parser.add_argument('--more_step', action='store_true', default=False)
@@ -146,7 +148,8 @@ if __name__=="__main__":
         args.horizons,
         args.seeds,
         #args.gpu_ids,
-        args.n_clusters
+        args.n_clusters,
+        args.d_model
     ))
 
     # 명령행 인자 출력
@@ -170,13 +173,14 @@ if __name__=="__main__":
     print(f"모든 제로 사용: {args.use_all_zero}")
     print(f"모든 랜덤 사용: {args.use_all_random}")
     print(f"클러스터 사용: {args.use_cluster}")
+    print(f"클러스터링 모델 차원: {args.d_model}")
     input("실험을 시작하려면 Enter 키를 누르세요...")
 
     # gpu_ids는 원소를 반복하면서 total_experiments 수 만큼으로 리스트 생성(예: [0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, ...])
     gpu_ids = (args.gpu_ids * (total_experiments // len(args.gpu_ids) + 1))[:total_experiments]
 
     commands = []
-    for (method, dataset_name, encoder_type, horizon, seed, n_cluster), gpu_id in zip(combinations, gpu_ids):
+    for (method, dataset_name, encoder_type, horizon, seed, n_cluster, d_model), gpu_id in zip(combinations, gpu_ids):
         if args.use_cluster:
             if dataset_name == 'electricity':
                 patience = args.patience_electricity if args.patience_electricity != args.patience_common else args.patience_common
@@ -184,7 +188,7 @@ if __name__=="__main__":
                 patience = args.patience_solar if args.patience_solar != args.patience_common else args.patience_common
             config, config_path = load_config(args.use_cluster, method, dataset_name)
             cmd = generate_single_command_cluster(
-                config_path, method, dataset_name, encoder_type, gpu_id, horizon, seed, n_cluster, patience,
+                config_path, method, dataset_name, encoder_type, gpu_id, horizon, seed, n_cluster, d_model, patience,
                 args.use_all_zero, args.use_all_random
             )
         else:
@@ -217,6 +221,11 @@ if __name__=="__main__":
     if args.script_only:
         # 스크립트만 생성
         script_path = 'scripts/run_experiments.sh'
+        
+        # commands 리스트 내의 리스트에 5번째 값을 기준으로 정렬
+        commands.sort(key=lambda x: (x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7], x[8], x[9]))
+        
+
         with open(script_path, 'w') as script_file:
             for cmd in commands:
                 script_file.write(' '.join(cmd) + '; \\' + '\n')

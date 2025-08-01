@@ -44,6 +44,7 @@ network:
   n_cluster: 3
   use_all_zero: False  # Use all-zero cluster probabilities
   use_all_random: False  # Use all-random cluster probabilities
+  d_model: 512
 
 runtime:
   seed: 39
