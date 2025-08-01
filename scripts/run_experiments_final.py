@@ -128,7 +128,7 @@ if __name__=="__main__":
     parser.add_argument('--use_all_zero', action='store_true', default=False)
     parser.add_argument('--use_all_random', action='store_true', default=False)
     parser.add_argument('--n_clusters', type=int, nargs='+', default=[3])
-    parser.add_argument('--d_model', type=int, nargs='+', default=512)  # 클러스터링 모델의 차원
+    parser.add_argument('--d_model', type=int, nargs='+', default=[512])  # 클러스터링 모델의 차원
 
     # 베이스라인
     parser.add_argument('--more_step', action='store_true', default=False)

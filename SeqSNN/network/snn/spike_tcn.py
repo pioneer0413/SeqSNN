@@ -236,14 +236,13 @@ class SpikeTemporalConvNet2D(nn.Module):
         Inject cluster probabilities
         '''
         if self.use_cluster:
-            inputs = inputs.permute(1, 0, 2, 3) # T, B, C, L
+            #inputs = inputs.permute(1, 0, 2, 3) # T, B, C, L
 
             self.cluster_prob = cluster_prob
-            cluster_prob = cluster_prob.transpose(1, 0) # [K, C]
-            # [K, C] -> [K, 1, C, 1]
-            cluster_prob = cluster_prob.unsqueeze(1).unsqueeze(-1)  # K, 1, C, 1
+            cluster_prob = cluster_prob.permute(2, 0, 1) # [K, B, C] < [B, C, K]
+            cluster_prob = cluster_prob.unsqueeze(-1)  # [K, B, C, 1]
             # [K, 1, C, 1] -> [K, B, C, L] by repeat
-            cluster_prob = cluster_prob.repeat(1, inputs.size(1), 1, inputs.size(3))
+            cluster_prob = cluster_prob.repeat(1, 1, 1, inputs.size(3))
 
             '''
             Hard binarize cluster probabilities while keeping gradients calculable
