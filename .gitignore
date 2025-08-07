@@ -167,5 +167,5 @@ wandb/
 FORECAST_META.csv
 warehouse
 analysis/
-scripts/
+!scripts/run_experiments_manual.py
 scripts/run_experiments.sh
