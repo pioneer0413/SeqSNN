@@ -131,12 +131,12 @@ if __name__=="__main__":
     parser.add_argument('--use_all_zero', action='store_true', default=False)
     parser.add_argument('--use_all_random', action='store_true', default=False)
     parser.add_argument('--n_clusters', type=int, nargs='+', default=[3])
-    parser.add_argument('--d_model', type=int, nargs='+', default=[512])  # 클러스터링 모델의 차원
+    parser.add_argument('--d_model', type=int, nargs='+', default=[256])  # 클러스터링 모델의 차원
     parser.add_argument('--beta', type=float, nargs='+', default=[2e-6])  # 클러스터링 모델의 손실의 비중
 
     # 베이스라인
     parser.add_argument('--num_steps', type=int, default=4)
-    parser.add_argument('--more_steps', type=int, default=3, help='추가 단계')
+    parser.add_argument('--more_steps', type=int, default=0, help='추가 단계')
 
     # 포스트픽스
     parser.add_argument('--postfix', type=str, default='unknown', help='실험 결과 디렉터리의 포스트픽스')
@@ -231,6 +231,8 @@ if __name__=="__main__":
             num_steps = (args.num_steps + args.more_steps) if args.more_steps > 0 else args.num_steps
             if num_steps != args.num_steps:
                 postfix = f'num_steps={num_steps}-{args.postfix}'
+            else:
+                postfix = args.postfix
 
             cmd = generate_single_command_baseline(
                 config_path, method, dataset_name, encoder_type, horizon, seed, postfix, patience, num_steps

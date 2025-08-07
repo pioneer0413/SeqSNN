@@ -142,6 +142,8 @@ class SpikeTemporalConvNet2D(nn.Module):
         gpu_id: Optional[int] = None,
         n_cluster: Optional[int] = 3,  # Number of clusters for clustering
         d_model: Optional[int] = 512,  # Dimension of the model for clustering
+        use_all_zero: bool = False,  # Use all-zero cluster probabilities
+        use_all_random: bool = False,  # Use all-random cluster probabilities
     ):
         """
         Args:
