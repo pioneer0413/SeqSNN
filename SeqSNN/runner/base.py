@@ -218,6 +218,7 @@ class BaseRunner(nn.Module):
 
         # main loop
         for epoch in range(start_epoch, self.max_epoches):
+            total_time_start = time.time()
             # pre_epoch
             self.train()
             train_loss = AverageMeter()
@@ -334,6 +335,13 @@ class BaseRunner(nn.Module):
                 elif es == EarlyStopStatus.STOP and self._early_stop():
                     break
             self._checkpoint(epoch, {**best_res, "best_epoch": best_epoch})
+
+            total_time = time.time() - total_time_start
+            # 전체 에폭(Epoch=1000)에 대한 예상 종료 시간 추정
+            maximum_estimated_end_time = (self.max_epoches - epoch - 1) * total_time
+            # 조기 종료 시 예상 종료 시간 추정
+            early_estimated_end_time = (self.early_stop.patience - self.early_stop.num_bad_epochs) * total_time
+            print(f"{epoch}\t'MEET': {maximum_estimated_end_time:.2f} s | 'EEET': {early_estimated_end_time:.2f} s")
 
         # release the space of train and valid dataset
         trainset.freeup()

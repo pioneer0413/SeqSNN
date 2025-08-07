@@ -11,6 +11,7 @@ import argparse
 import yaml
 
 config_root_dir = 'exp/forecast'
+source = 'source_hpclab'
 
 def load_config(use_cluster, method, dataset_name):
     if use_cluster:
@@ -23,7 +24,7 @@ def load_config(use_cluster, method, dataset_name):
 
 def generate_single_command_cluster(config_path, method, dataset_name, encoder_type, horizon, n_cluster, d_model, beta, seed, postfix, patience, gpu_id, use_all_zero=False, use_all_random=False):
     
-    output_dir = f'./warehouse/cluster/{method}_{dataset_name}_encoder={encoder_type}_horizon={horizon}_n_cluster={n_cluster}_d_model={d_model}_beta={beta}_seed={seed}_p={postfix}'
+    output_dir = f'./warehouse/{source}/cluster/{method}_{dataset_name}_encoder={encoder_type}_horizon={horizon}_n_cluster={n_cluster}_d_model={d_model}_beta={beta}_seed={seed}_p={postfix}'
 
     result_path = f'{output_dir}/checkpoints/res.json'
 
@@ -58,7 +59,7 @@ def generate_single_command_cluster(config_path, method, dataset_name, encoder_t
 
 def generate_single_command_baseline(config_path, method, dataset_name, encoder_type, horizon, seed, postfix, patience, num_steps):
     
-    output_dir = f'./warehouse/baseline/{method}_{dataset_name}_encoder={encoder_type}_horizon={horizon}_seed={seed}_p={postfix}'
+    output_dir = f'./warehouse/{source}/baseline/{method}_{dataset_name}_encoder={encoder_type}_horizon={horizon}_seed={seed}_p={postfix}'
 
     result_path = f'{output_dir}/checkpoints/res.json'
 
