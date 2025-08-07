@@ -25,7 +25,6 @@ runner:
   early_stop: 30
   batch_size: 64
   aggregate: True
-  beta: 2e-6
 
 network:
   type: SpikeRNN
@@ -38,13 +37,7 @@ network:
   pe_mode: concat
   num_pe_neuron: 40
   neuron_pe_scale: 1000.0
-  use_cluster: True  # Enable clustering
-  use_ste: True
-  gpu_id: 2
-  n_cluster: 3
-  use_all_zero: False  # Use all-zero cluster probabilities
-  use_all_random: False  # Use all-random cluster probabilities
-  d_model: 512
+
 
 runtime:
   seed: 39

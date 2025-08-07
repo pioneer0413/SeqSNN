@@ -1,5 +1,4 @@
 _base_:
-- ../model/ispikformer.yml
 - ../dataset/pems-bay.yml
 _custom_imports_:
 - SeqSNN.network
@@ -13,34 +12,32 @@ data:
   normalize: 2
 
 runner:
-  type: vsts
-  batch_size: 32
-  aggregate: False
-  out_size: 24
-  denormalize: True
+  type: ts
   task: regression
   optimizer: Adam
-  lr: 0.0001
+  lr: 0.001
   weight_decay: 0.0
   loss_fn: mse
-  metrics: [r2, rrse]
+  metrics: [r2, rse]
   observe: loss
   lower_is_better: True
   max_epoches: 1000
-  early_stop: 20
-  valid_variates: 325
+  early_stop: 30
+  batch_size: 64
+  aggregate: True
 
 network:
-  type: iSpikformer
-  dim: 512
-  d_ff: 2048
+  type: Spikformer
+  dim: 256
+  d_ff: 1024
   depths: 2
   num_steps: 4
   heads: 8
-  use_cluster: True  # Enable clustering
-  use_ste: True
-  gpu_id: 2
+  pe_type: none
+  pe_mode: concat
+  num_pe_neuron: 40
+  neuron_pe_scale: 10000.0
 
 runtime:
-  seed: 42
-  output_dir: ./outputs/ispikformer_horizon=24_pems-bay
+  seed: 39
+  output_dir: ./outputs/NoPE_Spikformer_horizon=24_pems-bay

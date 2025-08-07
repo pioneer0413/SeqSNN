@@ -1,5 +1,5 @@
 _base_:
-- ../dataset/electricity.yml
+- ../dataset/solar.yml
 _custom_imports_:
 - SeqSNN.network
 - SeqSNN.dataset
@@ -9,7 +9,7 @@ data:
   raw_label: False
   window: 168
   horizon: 24
-  normalize: 3
+  normalize: 1
 
 runner:
   type: ts
@@ -25,7 +25,6 @@ runner:
   early_stop: 30
   batch_size: 64
   aggregate: True
-  beta: 2e-6
 
 network:
   type: Spikformer
@@ -34,19 +33,12 @@ network:
   depths: 2
   num_steps: 4
   heads: 8
-  pe_type: neuron
-  pe_mode: add
+  pe_type: none
+  pe_mode: concat
   num_pe_neuron: 40
   neuron_pe_scale: 10000.0
   encoder_type: conv
-  use_cluster: True  # Enable clustering
-  use_ste: True
-  gpu_id: 2
-  n_cluster: 3
-  use_all_zero: False  # Use all-zero cluster probabilities
-  use_all_random: False  # Use all-random cluster probabilities
-  d_model: 512
 
 runtime:
   seed: 39
-  output_dir: ./outputs/neuron_add_seed39_Spikformer_horizon=24_electricity
+  output_dir: ./outputs/NoPE_Spikformer_horizon=24_solar

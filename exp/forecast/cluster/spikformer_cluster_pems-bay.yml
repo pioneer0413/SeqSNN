@@ -1,5 +1,5 @@
 _base_:
-- ../dataset/electricity.yml
+- ../dataset/pems-bay.yml
 _custom_imports_:
 - SeqSNN.network
 - SeqSNN.dataset
@@ -7,9 +7,9 @@ _custom_imports_:
 
 data:
   raw_label: False
-  window: 168
-  horizon: 96
-  normalize: 3
+  window: 12
+  horizon: 24
+  normalize: 2
 
 runner:
   type: ts
@@ -28,16 +28,16 @@ runner:
   beta: 2e-6
 
 network:
-  type: SpikeRNN
-  hidden_size: 128
-  layers: 2
+  type: Spikformer
+  dim: 256
+  d_ff: 1024
+  depths: 2
   num_steps: 4
-  encoder_type: conv
-  # pe_type: learn
-  pe_type: neuron
+  heads: 8
+  pe_type: none
   pe_mode: concat
   num_pe_neuron: 40
-  neuron_pe_scale: 1000.0
+  neuron_pe_scale: 10000.0
   use_cluster: True  # Enable clustering
   use_ste: True
   gpu_id: 2
@@ -48,4 +48,4 @@ network:
 
 runtime:
   seed: 39
-  output_dir: ./outputs/NeuronPE_1000_4_SpikeRNN_horizon=96_electricity
+  output_dir: ./outputs/NoPE_Spikformer_horizon=24_pems-bay

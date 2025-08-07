@@ -25,6 +25,7 @@ runner:
   early_stop: 30
   batch_size: 64
   aggregate: True
+  beta: 2e-6
 
 network:
   type: Spikformer

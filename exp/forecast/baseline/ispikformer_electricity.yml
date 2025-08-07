@@ -28,7 +28,6 @@ runner:
   lower_is_better: True
   max_epoches: 1000
   valid_variates: 321
-  beta: 2e-6
 
 network:
   type: iSpikformer
@@ -38,13 +37,6 @@ network:
   num_steps: 4
   heads: 8
   encoder_type: conv
-  use_cluster: True  # Enable clustering
-  use_ste: True
-  gpu_id: 2
-  n_cluster: 3
-  use_all_zero: False  # Use all-zero cluster probabilities
-  use_all_random: False  # Use all-random cluster probabilities
-  d_model: 512
 
 runtime:
   seed: 42

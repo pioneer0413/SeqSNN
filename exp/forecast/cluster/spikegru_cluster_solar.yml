@@ -1,4 +1,5 @@
 _base_:
+- ../model/spikegru.yml
 - ../dataset/solar.yml
 _custom_imports_:
 - SeqSNN.network
@@ -9,41 +10,41 @@ data:
   raw_label: False
   window: 168
   horizon: 96
-  normalize: 3
 
 runner:
-  type: ts
+  type: snnvsts
+  batch_size: 44
+  aggregate: False
+  out_size: 96
+  denormalize: True
   task: regression
   optimizer: Adam
-  lr: 0.001
+  lr: 0.0001
   weight_decay: 0.0
   loss_fn: mse
-  metrics: [r2, rse]
+  metrics: [r2, rrse]
   observe: loss
   lower_is_better: True
   max_epoches: 1000
   early_stop: 30
-  batch_size: 64
-  aggregate: True
-  beta: 5e-6
+  denormalize: True
+  valid_variates: 137
+  beta: 2e-6
 
 network:
-  type: SpikeRNN
-  hidden_size: 128
-  layers: 2
+  type: ISNNGRU2d
   num_steps: 4
+  layers: 1
+  hidden_size: 128
   encoder_type: conv
-  # pe_type: learn
-  pe_type: neuron
-  pe_mode: concat
-  num_pe_neuron: 40
-  neuron_pe_scale: 1000.0
   use_cluster: True  # Enable clustering
   use_ste: True
   gpu_id: 2
+  n_cluster: 3
   use_all_zero: False  # Use all-zero cluster probabilities
   use_all_random: False  # Use all-random cluster probabilities
+  d_model: 512
 
 runtime:
-  seed: 39
-  output_dir: ./outputs/NeuronPE_1000_4_SpikeRNN_horizon=96_solar
+  seed: 42
+  output_dir: ./outputs/spikegru_cluster_solar

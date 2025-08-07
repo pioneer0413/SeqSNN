@@ -38,9 +38,6 @@ network:
   num_steps: 4
   heads: 8
   encoder_type: delta
-  use_cluster: True  # Enable clustering
-  use_ste: True
-  gpu_id: 2
 
 runtime:
   seed: 42

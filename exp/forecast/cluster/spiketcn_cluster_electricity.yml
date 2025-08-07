@@ -5,12 +5,13 @@ _custom_imports_:
 
 data:
   type: TSMSDataset
-  file: data/LSTNet_ts/solar-energy/solar_AL.txt
+  file: data/electricity/electricity.txt
   window: 168
   horizon: 24
   train_ratio: 0.7
   test_ratio: 0.1
   raw_label: False
+  normalize: 3
 
 runner:
   type: ts
@@ -24,12 +25,13 @@ runner:
   lower_is_better: True
   max_epoches: 1000
   early_stop: 30
-  batch_size: 64
+  batch_size: 24
   aggregate: True
+  beta: 2e-6
 
 network:
   type: SNN_TCN2D
-  kernel_size: 64
+  kernel_size: 16
   num_levels: 3
   channel: 16
   dilation: 2
@@ -41,11 +43,17 @@ network:
   pe_type: neuron
   pe_mode: concat
   num_pe_neuron: 40
-  neuron_pe_scale: 10000.0
+  neuron_pe_scale: 1000.0
+  use_cluster: True  # Enable clustering
+  use_ste: True
   use_cluster: True  # Enable clustering
   use_ste: True
   gpu_id: 2
+  n_cluster: 3
+  use_all_zero: False  # Use all-zero cluster probabilities
+  use_all_random: False  # Use all-random cluster probabilities
+  d_model: 512
 
 runtime: 
-  seed: 42
-  # output_dir: ./outputs/NeuronPE_spiketcn2d_horizon=24_solar
+  seed: 40
+  output_dir: ./outputs/NeuronPE_1000_40_spiketcn2d_horizon=24_electricity

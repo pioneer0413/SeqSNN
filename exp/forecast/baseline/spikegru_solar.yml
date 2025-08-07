@@ -1,5 +1,5 @@
 _base_:
-- ../model/ispikformer.yml
+- ../model/spikegru.yml
 - ../dataset/solar.yml
 _custom_imports_:
 - SeqSNN.network
@@ -9,14 +9,13 @@ _custom_imports_:
 data:
   raw_label: False
   window: 168
-  horizon: 24
-  normalize: 1
-  
+  horizon: 96
+
 runner:
-  type: vsts
-  batch_size: 32
+  type: snnvsts
+  batch_size: 44
   aggregate: False
-  out_size: 24
+  out_size: 96
   denormalize: True
   task: regression
   optimizer: Adam
@@ -27,21 +26,17 @@ runner:
   observe: loss
   lower_is_better: True
   max_epoches: 1000
-  early_stop: 20
+  early_stop: 30
+  denormalize: True
   valid_variates: 137
 
 network:
-  type: iSpikformer
-  dim: 512
-  d_ff: 2048
-  depths: 12
+  type: ISNNGRU2d
   num_steps: 4
-  heads: 8
+  layers: 1
+  hidden_size: 128
   encoder_type: conv
-  use_cluster: True  # Enable clustering
-  use_ste: True
-  gpu_id: 2
 
 runtime:
   seed: 42
-  output_dir: ./outputs/ispikformer_horizon=24_solar_12_512_2048
+  output_dir: ./outputs/snn2dvsts_horizon=96_solar
