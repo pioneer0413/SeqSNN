@@ -144,10 +144,10 @@ if __name__=="__main__":
     parser.add_argument('--horizons', type=int, nargs='+', default=[6, 24, 48, 96])
     parser.add_argument('--seeds', type=int, nargs='+', default=[356, 5857])
     
-    parser.add_argument('--patience_electricity', type=int, default=20) # patience_common과 다르다면 현재 인자 사용
-    parser.add_argument('--patience_solar', type=int, default=20) # patience_common과 다르다면 현재 인자 사용
-    parser.add_argument('--patience_metr-la', type=int, default=20) # patience_common과 다르다면 현재 인자 사용
-    parser.add_argument('--patience_pems-bay', type=int, default=20)
+    parser.add_argument('--patience_electricity', type=int, default=5) # patience_common과 다르다면 현재 인자 사용
+    parser.add_argument('--patience_solar', type=int, default=5) # patience_common과 다르다면 현재 인자 사용
+    parser.add_argument('--patience_metr-la', type=int, default=5) # patience_common과 다르다면 현재 인자 사용
+    parser.add_argument('--patience_pems-bay', type=int, default=5)
     
     parser.add_argument('--batch_size_electricity', type=int, default=64)  # 전력 데이터셋 배치 크기
     parser.add_argument('--batch_size_solar', type=int, default=64)  #
