@@ -154,8 +154,7 @@ class BaseRunner(nn.Module):
             T_0=10,  # Number of epochs for the first restart
             T_mult=2,  # A factor increases T_i after a restart
             eta_min=1e-6,  # Minimum learning rate
-            last_epoch=-1,
-            verbose=True
+            last_epoch=-1
         )
 
     def _post_batch(
@@ -215,6 +214,7 @@ class BaseRunner(nn.Module):
         start_epoch, best_res = self._resume()
         best_epoch = best_res.pop("best_epoch", 0)
         best_score = self.early_stop.best
+        termination_epoch = self.max_epoches
 
         # main loop
         for epoch in range(start_epoch, self.max_epoches):

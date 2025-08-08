@@ -9,6 +9,7 @@ from itertools import product
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import argparse
 import yaml
+import signal
 
 config_root_dir = 'exp/forecast'
 source = 'source_hpclab'
@@ -100,6 +101,32 @@ def run_parallel_experiments(commands, max_workers):
             except Exception as e:
                 print(f"✗ 실험 중 오류 발생: {' '.join(cmd)} ({e})")
 
+def timeout_handler(signum, frame):
+    """타임아웃 핸들러"""
+    print("\n⏰ 타임아웃! 실험을 자동으로 시작합니다...")
+    raise KeyboardInterrupt
+
+def get_user_confirmation(timeout_seconds=30):
+    """사용자 확인을 받되, 타임아웃 시 자동으로 진행"""
+    print(f"실험을 시작하시겠습니까? (y/Y 또는 Enter를 누르세요, {timeout_seconds}초 후 자동 시작): ", end='', flush=True)
+    
+    # 타임아웃 설정
+    signal.signal(signal.SIGALRM, timeout_handler)
+    signal.alarm(timeout_seconds)
+    
+    try:
+        confirm = input()
+        signal.alarm(0)  # 타이머 취소
+        
+        if confirm.lower() != 'y' and confirm != '':
+            print("실험이 취소되었습니다.")
+            sys.exit(0)
+        return True
+        
+    except KeyboardInterrupt:
+        signal.alarm(0)  # 타이머 취소
+        return True  # 타임아웃 시 자동으로 실험 시작
+
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='SeqSNN 실험 실행 스크립트')
     
@@ -144,6 +171,7 @@ if __name__=="__main__":
 
     # 스크립트만 생성
     parser.add_argument('--script_only', action='store_true', default=False, help='스크립트만 생성하고 실행하지 않음')
+    parser.add_argument('--timeout', type=int, default=30, help='사용자 확인 타임아웃 시간(초), 0이면 타임아웃 없음')
 
     args = parser.parse_args()
 
@@ -189,12 +217,17 @@ if __name__=="__main__":
     print(f"Metr-la 데이터셋 배치 크기: {args.batch_size_metr_la}")
     print(f"Pems-bay 데이터셋 배치 크기: {args.batch_size_pems_bay}")
     print(f"스크립트만 생성: {args.script_only}")
+    print(f"사용자 확인 타임아웃: {args.timeout}초")
     
-    # y, Y 또는 엔터를 누르면 실험 시작 그 외는 종료
-    confirm = input("실험을 시작하시겠습니까? (y/Y 또는 Enter를 누르세요): ")
-    if confirm.lower() != 'y' and confirm != '':
-        print("실험이 취소되었습니다.")
-        sys.exit(0)
+    # 사용자 확인 (타임아웃 포함)
+    if args.timeout > 0:
+        get_user_confirmation(args.timeout)
+    else:
+        # 타임아웃 없이 일반적인 확인
+        confirm = input("실험을 시작하시겠습니까? (y/Y 또는 Enter를 누르세요): ")
+        if confirm.lower() != 'y' and confirm != '':
+            print("실험이 취소되었습니다.")
+            sys.exit(0)
 
     # gpu_ids는 원소를 반복하면서 total_experiments 수 만큼으로 리스트 생성(예: [0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, ...])
     gpu_ids = (args.gpu_ids * (total_experiments // len(args.gpu_ids) + 1))[:total_experiments]
