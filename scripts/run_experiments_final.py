@@ -75,7 +75,7 @@ def generate_single_command_baseline(config_path, method, dataset_name, encoder_
         f'--data.horizon={horizon}',
         f'--runtime.seed={seed}',
         f'--runner.early_stop={patience}',
-        f'--runtime.output_dir={output_dir}'
+        f'--runtime.output_dir={output_dir}',
         f'--network.num_steps={num_steps}',
     ]
 

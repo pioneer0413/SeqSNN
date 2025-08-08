@@ -12,7 +12,7 @@ data:
   horizon: 6
 
 runner:
-  type: snnvsts
+  type: vsts
   batch_size: 32
   aggregate: False
   out_size: 6

@@ -61,6 +61,9 @@ class iSpikformer(nn.Module):
         use_ste: bool = False,  # Use Straight-Through Estimator for cluster probabilities
         gpu_id: Optional[int] = None,
         n_cluster: Optional[int] = 3,  # Number of clusters for clustering
+        use_all_zero: bool = False,  # Use all-zero cluster probabilities
+        use_all_random: bool = False,  # Use all-random cluster probabilities
+        d_model: Optional[int] = 512,  # Dimension of the model for clustering
     ):
         super().__init__()
         self.dim = dim
@@ -72,6 +75,8 @@ class iSpikformer(nn.Module):
         self.use_ste = use_ste
         self.gpu_id = gpu_id
         self.n_cluster = n_cluster
+        self.use_all_zero = use_all_zero
+        self.use_all_random = use_all_random
 
         self.emb = DataEmbedding_inverted(max_length, dim)
         self.blocks = nn.ModuleList(
@@ -102,7 +107,7 @@ class iSpikformer(nn.Module):
                 n_vars=input_size,
                 n_cluster=self.n_cluster,  # This is a dummy value, will be set later
                 seq_len=max_length,
-                d_model=512,
+                d_model=d_model,
                 device=self.gpu_id
             )
 

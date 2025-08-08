@@ -12,7 +12,7 @@ data:
   horizon: 6
 
 runner:
-  type: vsts
+  type: snnvsts
   batch_size: 32
   aggregate: False
   out_size: 6
@@ -37,6 +37,5 @@ network:
   hidden_size: 128
   encoder_type: conv
 
-runtime: 
-  seed: 42
-  output_dir: ./output/snn2dvsts/horizon=6/pems-bay
+# runtime: 
+  # output_dir: ./output/snn2dvsts/horizon=6/pems-bay
