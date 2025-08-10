@@ -47,18 +47,21 @@ if __name__ == '__main__':
 
             tokens = res_file.split('/')
             source = tokens[1]
+            f_baseline = tokens[2]
             filename = os.path.basename(os.path.dirname(os.path.dirname(res_file)))
-            tokens = filename.split('_')
+            filename_tokens = filename.split('_')
 
             if len(tokens) < 4:
                 print(f"Skipping {res_file} due to insufficient tokens.")
                 continue
 
+            # <<< 토큰 파싱 시작  
+
             # architecture
-            architecture = tokens[0]
+            architecture = filename_tokens[0]
             
             # dataset
-            dataset = tokens[1]
+            dataset = filename_tokens[1]
             
             # encoder
             if tokens[2].startswith('encoder='):
@@ -71,6 +74,8 @@ if __name__ == '__main__':
                 horizon = tokens[3].split('=')[1]
             else:
                 horizon = 'unknown'
+            
+            # <<< 여기까지는 전부 동일
             
             # n_cluster
             # filename에 'n_cluster'가 포함되어 있으면, 그 다음 '=' 다음의 값을 n_cluster로 사용
@@ -105,13 +110,18 @@ if __name__ == '__main__':
             else:
                 beta = 'unknown'
 
+            # seed
             # 'seed'라는 문자열이 없는 경우 continue
-            if len(tokens) < 6 or not tokens[5].startswith('seed='):
-                print(f"Skipping {res_file} due to missing 'seed' information.")
+            if 'seed' not in filename:
+                print(f"Skipping {res_file} due to missing 'seed'.")
                 continue
-
-            if tokens[5].startswith('seed='):
-                seed = tokens[5].split('=')[1]
+            
+            # filename에 'seed'가 포함되어 있으면, 그 다음 '=' 다음의 값을 seed로 사용
+            seed_index = filename.index('seed') + len('seed=')
+            seed_end_index = filename.find('_', seed_index)
+            if seed_end_index == -1:
+                seed_end_index = len(filename)
+            seed = filename[seed_index:seed_end_index]
 
             postfix = 'unknown'
             # 'num_steps', 'all_zero', 'all_random'이 포함된 경우 postfix에 추가
@@ -121,6 +131,13 @@ if __name__ == '__main__':
                 postfix = 'all_zero'
             elif 'all_random' in filename:
                 postfix = 'all_random'
+            elif 'p=' in filename:
+                # 'p=' 다음의 값을 postfix로 사용
+                p_index = filename.index('p=') + len('p=')
+                p_end_index = filename.find('_', p_index)
+                if p_end_index == -1:
+                    p_end_index = len(filename)
+                postfix = filename[p_index:p_end_index]
 
             results.append({
                 'source': source,
