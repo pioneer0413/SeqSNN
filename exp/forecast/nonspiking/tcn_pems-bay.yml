@@ -1,6 +1,6 @@
 _base_:
-- ../model/rnn2d.yml
-- ../dataset/metr-la.yml
+- ../model/tcn2d.yml
+- ../dataset/pems-bay.yml
 _custom_imports_:
 - SeqSNN.network
 - SeqSNN.dataset
@@ -9,8 +9,7 @@ _custom_imports_:
 data:
   raw_label: False
   window: 12
-  horizon: 6
-  normalize: 1
+  horizon: 24
 
 runner:
   type: ts
@@ -19,7 +18,7 @@ runner:
   lr: 0.001
   weight_decay: 0.0
   loss_fn: mse
-  metrics: [r2, rse]
+  metrics: [r2, rrse]
   observe: loss
   lower_is_better: True
   max_epoches: 1000
@@ -28,19 +27,15 @@ runner:
   aggregate: True
 
 network:
-  type: TSRNN
-  #spatial_embed: true
-  #temporal_embed: true
-  #temporal_emb_type: learn
-  hidden_size: 8
-  dropout: 0.5
-  num_layers: 2
-  is_bidir: True
-  # cell_type: GRU
-  cell_type: RNN
-  emb_dim: 256
+  type: TCN2D
+  position_embedding: False
   emb_type: learn
+  kernel_size: 3
+  num_levels: 3
+  channel: 16
+  dilation: 2
+  dropout: 0.
 
-runtime:
+runtime: 
   seed: 42
-  output_dir: ./outputs/rnn2d_horizon=6_metr-la
+  # output_dir: ./output/tcn2d/horizon=24/pems-bay

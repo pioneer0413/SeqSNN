@@ -56,7 +56,7 @@ class TSRNN(nn.Module):
 
         if emb_dim != 0:
             self.emb = PositionEmbedding(
-                emb_type, input_size, max_length, dropout=dropout
+                input_size, emb_type, max_length, dropout=dropout
             )
 
         self.emb_dim = emb_dim

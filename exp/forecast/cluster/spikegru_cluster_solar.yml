@@ -12,7 +12,7 @@ data:
   horizon: 96
 
 runner:
-  type: snnvsts
+  type: vsts
   batch_size: 44
   aggregate: False
   out_size: 96
@@ -26,13 +26,13 @@ runner:
   observe: loss
   lower_is_better: True
   max_epoches: 1000
-  early_stop: 30
+  early_stop: 5
   denormalize: True
   valid_variates: 137
   beta: 2e-6
 
 network:
-  type: ISNNGRU2d
+  type: SNNGRU2d
   num_steps: 4
   layers: 1
   hidden_size: 128
@@ -43,7 +43,7 @@ network:
   n_cluster: 3
   use_all_zero: False  # Use all-zero cluster probabilities
   use_all_random: False  # Use all-random cluster probabilities
-  d_model: 512
+  d_model: 256
 
 runtime:
   seed: 42

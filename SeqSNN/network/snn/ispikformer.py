@@ -141,24 +141,21 @@ class iSpikformer(nn.Module):
         '''
         Inject cluster probabilities
         '''
-        if self.use_cluster:
-            self.cluster_prob = cluster_prob
-            cluster_prob = cluster_prob.transpose(1, 0) # [K, C]
-            # [K, C] -> [K, 1, C, 1]
-            cluster_prob = cluster_prob.unsqueeze(1).unsqueeze(-1)  # K, 1, C, 1
-            # [K, 1, C, 1] -> [K, B, C, L] by repeat
-            cluster_prob = cluster_prob.repeat(1, x.size(1), 1, x.size(3))
-
-            '''
-            Hard binarize cluster probabilities while keeping gradients calculable
-            '''
-            #cluster_prob_soft = torch.sigmoid(cluster_prob)  # [K, B, C, L]
+        if self.use_cluster: # v1
+            self.cluster_prob = cluster_prob  # [B, C, K]
+            cluster_prob = cluster_prob.permute(2, 0, 1) # [K, B, C] < [B, C, K]
+            cluster_prob = cluster_prob.unsqueeze(-1)  # [K, B, C, 1]
+            cluster_prob = cluster_prob.repeat(1, 1, 1, x.size(3))
             cluster_prob_soft = cluster_prob
-            #cluster_prob_hard = (cluster_prob > 0.5).float()  # [K, B, C, L]
             cluster_prob_hard = torch.bernoulli(cluster_prob_soft)  # [K, B, C, L] - Bernoulli sampling
-
             if self.use_ste:
                 cluster_prob = cluster_prob_soft + (cluster_prob_hard - cluster_prob_soft).detach()  # [K, B, C, L]
+            else:
+                cluster_prob = cluster_prob_soft
+
+            self.spike_rate = cluster_prob.mean()
+            self.spike_count = cluster_prob.sum()
+            self.spike_shape = cluster_prob.shape
 
             x = torch.cat((x, cluster_prob), dim=0)  # T+K, B, C, L
 
@@ -177,3 +174,15 @@ class iSpikformer(nn.Module):
     @property
     def hidden_size(self):
         return self.dim
+    
+    @property
+    def cluster_spike_rate(self):
+        return self.spike_rate if hasattr(self, 'spike_rate') else None
+    
+    @property
+    def cluster_spike_count(self):
+        return self.spike_count if hasattr(self, 'spike_count') else None
+    
+    @property
+    def cluster_spike_shape(self):
+        return self.spike_shape if hasattr(self, 'spike_shape') else None

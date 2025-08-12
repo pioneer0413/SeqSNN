@@ -22,7 +22,7 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(description='Aggregate results from res.json files.')
-    parser.add_argument('--dir_path', type=str, default="warehouse/baseline", help='Directory path to search for res.json files')
+    parser.add_argument('--dir_path', type=str, default="warehouse/", help='Directory path to search for res.json files')
     args = parser.parse_args()
 
     # Get the list of res.json file paths
@@ -63,15 +63,23 @@ if __name__ == '__main__':
             # dataset
             dataset = filename_tokens[1]
             
-            # encoder
-            if tokens[2].startswith('encoder='):
-                encoder = tokens[2].split('=')[1]
+            # 'encoder='가 포함되어 있다면 그 다음 값을 encoder로 사용
+            if 'encoder=' in filename:
+                encoder_index = filename.index('encoder=') + len('encoder=')
+                encoder_end_index = filename.find('_', encoder_index)
+                if encoder_end_index == -1:
+                    encoder_end_index = len(filename)
+                encoder = filename[encoder_index:encoder_end_index]
             else:
                 encoder = 'unknown'
             
-            # horizon
-            if tokens[3].startswith('horizon='):
-                horizon = tokens[3].split('=')[1]
+            # 'horizon='가 포함되어 있다면 그 다음 값을 horizon으로 사용
+            if 'horizon=' in filename:
+                horizon_index = filename.index('horizon=') + len('horizon=')
+                horizon_end_index = filename.find('_', horizon_index)
+                if horizon_end_index == -1:
+                    horizon_end_index = len(filename)
+                horizon = filename[horizon_index:horizon_end_index]
             else:
                 horizon = 'unknown'
             

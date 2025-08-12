@@ -98,7 +98,7 @@ class TemporalConvNet2D(nn.Module):
             kernel_size: The kernel size of convolutional layers.
             dropout: Dropout rate.
         """
-        super().__init__(self)
+        super().__init__()
         layers = []
         num_channels = [channel] * num_levels
         num_channels.append(1)

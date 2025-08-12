@@ -34,7 +34,7 @@ runner:
 network:
   type: iTransformer
   d_ff: 1024
-  d_runner: 256
+  d_model: 256
   e_layers: 2
 
 runtime:

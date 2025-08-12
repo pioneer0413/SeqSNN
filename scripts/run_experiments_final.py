@@ -56,6 +56,9 @@ def generate_single_command_cluster(config_path, method, dataset_name, encoder_t
 
     cmd.append(f'--runtime.output_dir={output_dir}')
 
+    if method == 'ispikformer' or method == 'spikegru':
+        cmd.append(f'--runner.out_size={horizon}')
+
     return cmd
 
 def generate_single_command_baseline(config_path, method, dataset_name, encoder_type, horizon, seed, postfix, patience, num_steps):
@@ -79,7 +82,7 @@ def generate_single_command_baseline(config_path, method, dataset_name, encoder_
         f'--network.num_steps={num_steps}',
     ]
 
-    if method == 'ispikformer':
+    if method == 'ispikformer' or method == 'spikegru':
         cmd.append(f'--runner.out_size={horizon}')
 
     return cmd

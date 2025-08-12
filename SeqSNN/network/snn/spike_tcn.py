@@ -257,6 +257,10 @@ class SpikeTemporalConvNet2D(nn.Module):
             if self.use_ste:
                 cluster_prob = cluster_prob_soft + (cluster_prob_hard - cluster_prob_soft).detach()  # [K, B, C, L]
 
+            self.spike_rate = cluster_prob.mean()
+            self.spike_count = cluster_prob.sum()
+            self.spike_shape = cluster_prob.shape
+
             inputs = torch.cat((inputs, cluster_prob), dim=0)  # T+K, B, C, L
             # reshape
             inputs = inputs.permute(1, 0, 2, 3) # B, T+K, C, L
@@ -275,3 +279,16 @@ class SpikeTemporalConvNet2D(nn.Module):
     @property
     def hidden_size(self):
         return self.__hidden_size
+
+    
+    @property
+    def cluster_spike_rate(self):
+        return self.spike_rate if hasattr(self, 'spike_rate') else None
+    
+    @property
+    def cluster_spike_count(self):
+        return self.spike_count if hasattr(self, 'spike_count') else None
+    
+    @property
+    def cluster_spike_shape(self):
+        return self.spike_shape if hasattr(self, 'spike_shape') else None

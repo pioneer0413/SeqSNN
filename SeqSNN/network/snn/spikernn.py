@@ -171,6 +171,10 @@ class SpikeRNN(nn.Module):
                 cluster_prob = torch.rand_like(cluster_prob)
                 #print('check cluster_prob min-max', cluster_prob.min(), cluster_prob.max())
 
+            self.spike_rate = cluster_prob.mean()
+            self.spike_count = cluster_prob.sum()
+            self.spike_shape = cluster_prob.shape
+
             hiddens = torch.cat((hiddens, cluster_prob), dim=0)  # T+K, B, C, L
 
         hiddens = hiddens.transpose(-2, -1)  # T, B, L, C
@@ -192,6 +196,18 @@ class SpikeRNN(nn.Module):
     @property
     def hidden_size(self):
         return self.dim
+    
+    @property
+    def cluster_spike_rate(self):
+        return self.spike_rate if hasattr(self, 'spike_rate') else None
+    
+    @property
+    def cluster_spike_count(self):
+        return self.spike_count if hasattr(self, 'spike_count') else None
+    
+    @property
+    def cluster_spike_shape(self):
+        return self.spike_shape if hasattr(self, 'spike_shape') else None
 
 
 @NETWORKS.register_module("SpikeRNN2d")

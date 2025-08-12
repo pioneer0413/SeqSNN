@@ -10,6 +10,8 @@ from torch import nn
 
 from ..base import NETWORKS
 
+from ...module.clustering import Cluster_assigner
+
 
 class GRUCell(nn.Module):
     def __init__(
@@ -198,7 +200,8 @@ class TSSNNGRU(nn.Module):
         for layer in self.net:
             utils.reset(layer)
         hiddens = self.encoder(inputs)
-        _, t, _ = hiddens.size()  # B, L, H
+        print(hiddens.shape)  # B, H, C, L
+        _, _, t, _ = hiddens.size()  # B, L, H
         for i in range(t):
             spks, _ = self.net(hiddens[:, i, :])
         return spks.transpose(1, 2), spks[:, :, -1]  # B * Time Step * H, B * H
@@ -220,6 +223,13 @@ class TSSNNGRU2D(nn.Module):
         max_length: Optional[int] = None,
         weight_file: Optional[Path] = None,
         encoder_type: Optional[str] = "conv",
+        use_cluster: bool = False,
+        use_ste: bool = False,  # Use Straight-Through Estimator for cluster probabilities
+        gpu_id: Optional[int] = None,
+        n_cluster: Optional[int] = 3,  # Number of clusters for clustering
+        use_all_zero: bool = False,  # Use all-zero cluster probabilities
+        use_all_random: bool = False,  # Use all-random cluster probabilities
+        d_model: Optional[int] = 512,  # Dimension of the model for clustering
     ):
         super().__init__()
         if encoder_type == "conv":
@@ -228,32 +238,112 @@ class TSSNNGRU2D(nn.Module):
             self.encoder = DeltaEncoder(hidden_size)
         else:
             raise ValueError(f"Unknown encoder type {encoder_type}")
+        
+        
+        self.use_cluster = use_cluster
+        self.use_ste = use_ste
+        self.gpu_id = gpu_id
+        self.n_cluster = n_cluster
+        self.use_all_zero = use_all_zero
+        self.use_all_random = use_all_random
 
-        self.net = nn.Sequential(
-            *[
-                GRUCell(
-                    hidden_size,
-                    hidden_size,
-                    num_steps=num_steps,
-                    grad_slope=grad_slope,
-                    output_mems=(i == layers - 1),
-                )
-                for i in range(layers)
-            ]
-        )
+        '''
+        Cluster assigner
+        '''
+        if self.use_cluster:
+            self.input_size = input_size
+            self.max_length = max_length
+            self.cluster_assigner = Cluster_assigner(
+                n_vars=input_size,
+                n_cluster=self.n_cluster,  # This is a dummy value, will be set later
+                seq_len=max_length,
+                d_model=d_model,
+                device=self.gpu_id
+            )
 
-        self.__output_size = hidden_size * input_size
+        if self.use_cluster:
+            self.net = nn.Sequential(
+                *[
+                    GRUCell(
+                        hidden_size+self.n_cluster,
+                        hidden_size+self.n_cluster,
+                        num_steps=num_steps,
+                        grad_slope=grad_slope,
+                        output_mems=(i == layers - 1),
+                    )
+                    for i in range(layers)
+                ]
+            )
+            self.__output_size = (hidden_size+self.n_cluster) * input_size
+        else:
+            self.net = nn.Sequential(
+                *[
+                    GRUCell(
+                        hidden_size,
+                        hidden_size,
+                        num_steps=num_steps,
+                        grad_slope=grad_slope,
+                        output_mems=(i == layers - 1),
+                    )
+                    for i in range(layers)
+                ]
+            )
+            self.__output_size = hidden_size * input_size
 
     def forward(
         self,
         inputs: torch.Tensor,
+        if_update: bool = False,  # If True, update cluster probabilities
     ):
         utils.reset(self.encoder)
         for layer in self.net:
             utils.reset(layer)
         bs, length, c_num = inputs.size()
         h = self.encoder(inputs)  # B, H, C, L
-        hidden_size = h.size(1)
+
+        #print(f'hiddens.shape: {h.shape}')
+
+        '''
+        Get cluster probabilities and embeddings
+        '''
+        if self.use_cluster:
+            cluster_prob, cluster_emb = self.cluster_assigner(
+                inputs, self.cluster_assigner.cluster_emb
+            )
+            if if_update:
+                self.cluster_assigner.cluster_emb = nn.Parameter(cluster_emb, requires_grad=True)
+        '''
+        Inject cluster probabilities
+        '''
+        if self.use_cluster: # v1
+            self.cluster_prob = cluster_prob  # [B, C, K]
+            cluster_prob = cluster_prob.permute(2, 0, 1) # [K, B, C] < [B, C, K]
+            cluster_prob = cluster_prob.unsqueeze(-1)  # [K, B, C, 1]
+            cluster_prob = cluster_prob.repeat(1, 1, 1, h.size(3))
+            cluster_prob_soft = cluster_prob
+            cluster_prob_hard = torch.bernoulli(cluster_prob_soft)  # [K, B, C, L] - Bernoulli sampling
+            if self.use_ste:
+                cluster_prob = cluster_prob_soft + (cluster_prob_hard - cluster_prob_soft).detach()  # [K, B, C, L]
+            else:
+                cluster_prob = cluster_prob_soft
+
+            if self.use_all_zero:
+                cluster_prob = torch.zeros_like(cluster_prob)
+                #print('check cluster_prob min-max', cluster_prob.min(), cluster_prob.max())
+            elif self.use_all_random:
+                assert self.use_all_zero is False, "Cannot use both all-zero and all-random cluster probabilities."
+                cluster_prob = torch.rand_like(cluster_prob)
+                #print('check cluster_prob min-max', cluster_prob.min(), cluster_prob.max())
+
+            cluster_prob = cluster_prob.transpose(1, 0) # [B, K, C, L]
+
+            self.spike_rate = cluster_prob.mean()
+            self.spike_count = cluster_prob.sum()
+            self.spike_shape = cluster_prob.shape
+
+            h = torch.cat((h, cluster_prob), dim=1)  # B, H+K, C, L
+
+        hidden_size = h.size(1) # H
         h = h.permute(0, 2, 3, 1).reshape(bs * c_num, length, hidden_size)  # BC, L, H
         for i in range(length):
             spks, mems = self.net(h[:, i, :])
@@ -264,6 +354,18 @@ class TSSNNGRU2D(nn.Module):
     @property
     def output_size(self):
         return self.__output_size
+    
+    @property
+    def cluster_spike_rate(self):
+        return self.spike_rate if hasattr(self, 'spike_rate') else None
+    
+    @property
+    def cluster_spike_count(self):
+        return self.spike_count if hasattr(self, 'spike_count') else None
+    
+    @property
+    def cluster_spike_shape(self):
+        return self.spike_shape if hasattr(self, 'spike_shape') else None
 
 
 @NETWORKS.register_module("ISNNGRU2d")

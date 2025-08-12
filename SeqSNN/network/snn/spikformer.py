@@ -188,6 +188,10 @@ class Spikformer(nn.Module):
             else:
                 cluster_prob = cluster_prob_soft
 
+            self.spike_rate = cluster_prob.mean()
+            self.spike_count = cluster_prob.sum()
+            self.spike_shape = cluster_prob.shape
+
             x = torch.cat((x, cluster_prob), dim=0)  # T+K, B, C, L
 
         x = x.transpose(-2, -1)  # T B L C
@@ -210,3 +214,15 @@ class Spikformer(nn.Module):
     @property
     def hidden_size(self):
         return self.dim
+    
+    @property
+    def cluster_spike_rate(self):
+        return self.spike_rate if hasattr(self, 'spike_rate') else None
+    
+    @property
+    def cluster_spike_count(self):
+        return self.spike_count if hasattr(self, 'spike_count') else None
+    
+    @property
+    def cluster_spike_shape(self):
+        return self.spike_shape if hasattr(self, 'spike_shape') else None
