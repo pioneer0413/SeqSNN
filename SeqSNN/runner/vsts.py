@@ -59,7 +59,6 @@ class VariateSpecTS(TS):
         else:
             out = seq_out
         out = out.reshape(B, C, -1)  # [B, N, E], C=N
-        print(f"out shape: {out.shape}")
         preds = self.act_out(self.fc_out(out).squeeze(-1)).permute(0, 2, 1)  # [B, O, N]
         if self.denormalize:
             preds = preds * (

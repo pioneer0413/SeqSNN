@@ -274,7 +274,7 @@ class TSSNNGRU2D(nn.Module):
                     for i in range(layers)
                 ]
             )
-            self.__output_size = (hidden_size+self.n_cluster) * input_size
+            self.__output_size = (hidden_size+self.n_cluster) * num_steps
         else:
             self.net = nn.Sequential(
                 *[
@@ -288,7 +288,7 @@ class TSSNNGRU2D(nn.Module):
                     for i in range(layers)
                 ]
             )
-            self.__output_size = hidden_size * input_size
+            self.__output_size = hidden_size * num_steps
 
     def forward(
         self,
