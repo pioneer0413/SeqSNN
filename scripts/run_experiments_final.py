@@ -151,11 +151,17 @@ if __name__=="__main__":
     parser.add_argument('--patience_solar', type=int, default=5) # patience_common과 다르다면 현재 인자 사용
     parser.add_argument('--patience_metr-la', type=int, default=5) # patience_common과 다르다면 현재 인자 사용
     parser.add_argument('--patience_pems-bay', type=int, default=5)
+    parser.add_argument('--patience_traffic', type=int, default=5) # 교통 데이터셋의 조기 중단 인자
+    parser.add_argument('--patience_weather', type=int, default=5) # 날씨 데이터셋의 조기 중단 인자
+    parser.add_argument('--patience_common', type=int, default=5, help='공통 조기 중단 인자, 데이터셋별로 다를 경우 개별 인자를 사용하세요')
     
     parser.add_argument('--batch_size_electricity', type=int, default=64)  # 전력 데이터셋 배치 크기
     parser.add_argument('--batch_size_solar', type=int, default=64)  #
     parser.add_argument('--batch_size_metr-la', type=int, default=64)  # Metr-la 데이터셋 배치 크기
     parser.add_argument('--batch_size_pems-bay', type=int, default=64)
+    parser.add_argument('--batch_size_traffic', type=int, default=64)  # 교통 데이터셋 배치 크기
+    parser.add_argument('--batch_size_weather', type=int, default=64)  # 날씨 데이터셋 배치 크기
+    parser.add_argument('--batch_size_common', type=int, default=64, help='공통 배치 크기, 데이터셋별로 다를 경우 개별 인자를 사용하세요')
 
     # 클러스터 관련
     parser.add_argument('--use_cluster', action='store_true', default=False)
@@ -247,6 +253,10 @@ if __name__=="__main__":
                 patience = args.patience_metr_la
             elif dataset_name == 'pems-bay':
                 patience = args.patience_pems_bay
+            elif dataset_name == 'traffic':
+                patience = args.patience_traffic
+            elif dataset_name == 'weather':
+                patience = args.patience_weather
             else:
                 patience = 5
 
@@ -264,6 +274,10 @@ if __name__=="__main__":
                 patience = args.patience_metr_la
             elif dataset_name == 'pems-bay':
                 patience = args.patience_pems_bay
+            elif dataset_name == 'traffic':
+                patience = args.patience_traffic
+            elif dataset_name == 'weather':
+                patience = args.patience_weather
             else:
                 patience = 5
 
@@ -284,13 +298,17 @@ if __name__=="__main__":
             continue
         
         if dataset_name == 'electricity':
-                cmd.append(f'--runner.batch_size={args.batch_size_electricity}')
+            cmd.append(f'--runner.batch_size={args.batch_size_electricity}')
         elif dataset_name == 'solar':
-                cmd.append(f'--runner.batch_size={args.batch_size_solar}')
+            cmd.append(f'--runner.batch_size={args.batch_size_solar}')
         elif dataset_name == 'metr-la':
-                cmd.append(f'--runner.batch_size={args.batch_size_metr_la}')
+            cmd.append(f'--runner.batch_size={args.batch_size_metr_la}')
         elif dataset_name == 'pems-bay':
-                cmd.append(f'--runner.batch_size={args.batch_size_pems_bay}')
+            cmd.append(f'--runner.batch_size={args.batch_size_pems_bay}')
+        elif dataset_name == 'traffic':
+            cmd.append(f'--runner.batch_size={args.batch_size_traffic}')
+        elif dataset_name == 'weather':
+            cmd.append(f'--runner.batch_size={args.batch_size_weather}')
         
         commands.append(cmd)
 
