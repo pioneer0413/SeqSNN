@@ -169,4 +169,8 @@ warehouse
 analysis/
 !scripts/run_experiments_manual.py
 scripts/run_experiments.sh
-dataset
+!dataset/
+dataset/*
+!dataset/traffic.yml
+!dataset/weather.yml
+dataset_link

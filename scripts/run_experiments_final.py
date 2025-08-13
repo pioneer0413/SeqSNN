@@ -234,6 +234,7 @@ if __name__=="__main__":
 
     # gpu_ids는 원소를 반복하면서 total_experiments 수 만큼으로 리스트 생성(예: [0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, ...])
     gpu_ids = (args.gpu_ids * (total_experiments // len(args.gpu_ids) + 1))[:total_experiments]
+    gpu_ids.sort()
 
     commands = []
     for (method, dataset_name, encoder_type, horizon, n_cluster, d_model, beta, seed), gpu_id in zip(combinations, gpu_ids):
@@ -246,6 +247,8 @@ if __name__=="__main__":
                 patience = args.patience_metr_la
             elif dataset_name == 'pems-bay':
                 patience = args.patience_pems_bay
+            else:
+                patience = 5
 
             config, config_path = load_config(args.use_cluster, method, dataset_name)
             cmd = generate_single_command_cluster(
@@ -261,6 +264,8 @@ if __name__=="__main__":
                 patience = args.patience_metr_la
             elif dataset_name == 'pems-bay':
                 patience = args.patience_pems_bay
+            else:
+                patience = 5
 
             config, config_path = load_config(args.use_cluster, method, dataset_name)
 
