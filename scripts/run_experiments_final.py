@@ -279,7 +279,7 @@ if __name__=="__main__":
             elif dataset_name == 'weather':
                 patience = args.patience_weather
             else:
-                patience = 5
+                patience = args.patience_common
 
             config, config_path = load_config(args.use_cluster, method, dataset_name)
 
@@ -309,6 +309,8 @@ if __name__=="__main__":
             cmd.append(f'--runner.batch_size={args.batch_size_traffic}')
         elif dataset_name == 'weather':
             cmd.append(f'--runner.batch_size={args.batch_size_weather}')
+        else:
+            cmd.append(f'--runner.batch_size={args.batch_size_common}')
         
         commands.append(cmd)
 
