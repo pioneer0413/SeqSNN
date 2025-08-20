@@ -3,7 +3,7 @@ import argparse
 import pandas as pd
 import numpy as np
 
-src_dir = '/home/hwkang/SeqSNN/dataset/forecasting'
+src_dir = '/home/hwkang/SeqSNN/dataset_link/forecasting'
 dst_dir = '/home/hwkang/SeqSNN/data'
 
 def convert_long_to_wide(df):
