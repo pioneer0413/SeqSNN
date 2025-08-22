@@ -39,7 +39,7 @@ def run_train(config):
     runner.fit(trainset, validset, testset)
     #runner.predict(trainset, "train")
     #runner.predict(validset, "valid")
-    runner.predict(testset, "test")
+    #runner.predict(testset, "test")
 
 
 if __name__ == "__main__":

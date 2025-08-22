@@ -138,36 +138,36 @@ if __name__=="__main__":
     '''
     # 실행 환경
     parser.add_argument('--gpu_ids', type=str, nargs='+', default=['0'])
-    parser.add_argument('--max_workers', type=int, default=6)
+    parser.add_argument('--max_workers', type=int, default=2)
 
     # 런타임
-    parser.add_argument('--architectures', type=str, nargs='+', default=['spikformer']) # ['spikernn', 'spikegru', 'spikformer', 'ispikformer', 'spiketcn', 'snn']
+    parser.add_argument('--architectures', type=str, nargs='+', default=['spikformer']) # ['spikernn', 'spikegru', 'spikformer', 'ispikformer', 'spiketcn']
     parser.add_argument('--dataset_names', type=str, nargs='+', default=['electricity', 'solar']) # ['electricity', 'solar', 'metr-la', 'pems-bay', 'traffic', 'weather', 'exchange-rate', 'etth1', 'etth2']
-    parser.add_argument('--encoder_types', type=str, nargs='+', default=['repeat', 'delta', 'conv'])
+    parser.add_argument('--encoder_types', type=str, nargs='+', default=['conv', 'delta'])
     parser.add_argument('--horizons', type=int, nargs='+', default=[6]) # [6, 24, 48, 96]
     parser.add_argument('--seeds', type=int, nargs='+', default=[777])
     
-    parser.add_argument('--patience_electricity', type=int, default=5) # patience_common과 다르다면 현재 인자 사용
-    parser.add_argument('--patience_solar', type=int, default=5) # patience_common과 다르다면 현재 인자 사용
-    parser.add_argument('--patience_metr-la', type=int, default=5) # patience_common과 다르다면 현재 인자 사용
-    parser.add_argument('--patience_pems-bay', type=int, default=5)
+    parser.add_argument('--patience_electricity', type=int, default=10) # patience_common과 다르다면 현재 인자 사용
+    parser.add_argument('--patience_solar', type=int, default=10) # patience_common과 다르다면 현재 인자 사용
+    parser.add_argument('--patience_metr-la', type=int, default=10) # patience_common과 다르다면 현재 인자 사용
+    parser.add_argument('--patience_pems-bay', type=int, default=10)
     parser.add_argument('--patience_traffic', type=int, default=5) # 교통 데이터셋의 조기 중단 인자
-    parser.add_argument('--patience_weather', type=int, default=5) # 날씨 데이터셋의 조기 중단 인자
+    parser.add_argument('--patience_weather', type=int, default=25) # 날씨 데이터셋의 조기 중단 인자
     parser.add_argument('--patience_exchange-rate', type=int, default=5) # 환율 데이터셋의 조기 중단 인자
-    parser.add_argument('--patience_etth1', type=int, default=5) # etth1 데이터셋의 조기 중단 인자
-    parser.add_argument('--patience_etth2', type=int, default=5) # etth2 데이터셋의 조기 중단 인자
-    parser.add_argument('--patience_common', type=int, default=5, help='공통 조기 중단 인자, 데이터셋별로 다를 경우 개별 인자를 사용하세요')
+    parser.add_argument('--patience_etth1', type=int, default=30) # etth1 데이터셋의 조기 중단 인자
+    parser.add_argument('--patience_etth2', type=int, default=30) # etth2 데이터셋의 조기 중단 인자
+    parser.add_argument('--patience_nasdaq', type=int, default=30) # nasdaq 데이터셋의 조기 중단 인자
     
-    parser.add_argument('--batch_size_electricity', type=int, default=64)  # 전력 데이터셋 배치 크기
-    parser.add_argument('--batch_size_solar', type=int, default=64)  #
-    parser.add_argument('--batch_size_metr-la', type=int, default=64)  # Metr-la 데이터셋 배치 크기
-    parser.add_argument('--batch_size_pems-bay', type=int, default=64)
-    parser.add_argument('--batch_size_traffic', type=int, default=64)  # 교통 데이터셋 배치 크기
+    parser.add_argument('--batch_size_electricity', type=int, default=32)  # 전력 데이터셋 배치 크기
+    parser.add_argument('--batch_size_solar', type=int, default=32)  #
+    parser.add_argument('--batch_size_metr-la', type=int, default=32)  # Metr-la 데이터셋 배치 크기
+    parser.add_argument('--batch_size_pems-bay', type=int, default=16)
+    parser.add_argument('--batch_size_traffic', type=int, default=16)  # 교통 데이터셋 배치 크기
     parser.add_argument('--batch_size_weather', type=int, default=64)  # 날씨 데이터셋 배치 크기
     parser.add_argument('--batch_size_exchange_rate', type=int, default=64)  # 환율 데이터셋 배치 크기
-    parser.add_argument('--batch_size_etth1', type=int, default=64)  # etth1 데이터셋 배치 크기
-    parser.add_argument('--batch_size_etth2', type=int, default=64)  # etth2 데이터셋 배치 크기
-    parser.add_argument('--batch_size_common', type=int, default=64, help='공통 배치 크기, 데이터셋별로 다를 경우 개별 인자를 사용하세요')
+    parser.add_argument('--batch_size_etth1', type=int, default=128)  # etth1 데이터셋 배치 크기
+    parser.add_argument('--batch_size_etth2', type=int, default=128)  # etth2 데이터셋 배치 크기
+    parser.add_argument('--batch_size_nasdaq', type=int, default=128)  # nasdaq 데이터셋 배치 크기
 
     # 클러스터 관련
     parser.add_argument('--use_cluster', action='store_true', default=False)
@@ -232,6 +232,7 @@ if __name__=="__main__":
     print(f"Exchange-rate 데이터셋 조기 중단 인자: {args.patience_exchange_rate}")
     print(f"Etth1 데이터셋 조기 중단 인자: {args.patience_etth1}")
     print(f"Etth2 데이터셋 조기 중단 인자: {args.patience_etth2}")
+    print(f"Nasdaq 데이터셋 조기 중단 인자: {args.patience_nasdaq}")
     print('*' * 50)
     print(f"Electricity 데이터셋 배치 크기: {args.batch_size_electricity}")
     print(f"Solar 데이터셋 배치 크기: {args.batch_size_solar}")
@@ -242,6 +243,7 @@ if __name__=="__main__":
     print(f"Exchange-rate 데이터셋 배치 크기: {args.batch_size_exchange_rate}")
     print(f"Etth1 데이터셋 배치 크기: {args.batch_size_etth1}")
     print(f"Etth2 데이터셋 배치 크기: {args.batch_size_etth2}")
+    print(f"Nasdaq 데이터셋 배치 크기: {args.batch_size_nasdaq}")
     print('*' * 50)
     print(f"스크립트만 생성: {args.script_only}")
     print(f"사용자 확인 타임아웃: {args.timeout}초")
@@ -258,69 +260,49 @@ if __name__=="__main__":
 
     # gpu_ids는 원소를 반복하면서 total_experiments 수 만큼으로 리스트 생성(예: [0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, ...])
     gpu_ids = (args.gpu_ids * (total_experiments // len(args.gpu_ids) + 1))[:total_experiments]
-    if not args.use_cluster:
+    if args.script_only:
         gpu_ids.sort()
 
     commands = []
     for (method, dataset_name, encoder_type, horizon, n_cluster, d_model, beta, seed), gpu_id in zip(combinations, gpu_ids):
-        if args.use_cluster:
-            if dataset_name == 'electricity':
-                patience = args.patience_electricity
-            elif dataset_name == 'solar':
-                patience = args.patience_solar
-            elif dataset_name == 'metr-la':
-                patience = args.patience_metr_la
-            elif dataset_name == 'pems-bay':
-                patience = args.patience_pems_bay
-            elif dataset_name == 'traffic':
-                patience = args.patience_traffic
-            elif dataset_name == 'weather':
-                patience = args.patience_weather
-            elif dataset_name == 'exchange-rate':
-                patience = args.patience_exchange_rate
-            elif dataset_name == 'etth1':
-                patience = args.patience_etth1
-            elif dataset_name == 'etth2':
-                patience = args.patience_etth2
-            else:
-                patience = 5
+        if dataset_name == 'electricity':
+            patience = args.patience_electricity
+        elif dataset_name == 'solar':
+            patience = args.patience_solar
+        elif dataset_name == 'metr-la':
+            patience = args.patience_metr_la
+        elif dataset_name == 'pems-bay':
+            patience = args.patience_pems_bay
+        elif dataset_name == 'traffic':
+            patience = args.patience_traffic
+        elif dataset_name == 'weather':
+            patience = args.patience_weather
+        elif dataset_name == 'exchange-rate':
+            patience = args.patience_exchange_rate
+        elif dataset_name == 'etth1':
+            patience = args.patience_etth1
+        elif dataset_name == 'etth2':
+            patience = args.patience_etth2
+        elif dataset_name == 'nasdaq':
+            patience = args.patience_nasdaq
+        else:
+            # 에러 발생
+            raise ValueError(f"알 수 없는 데이터셋 이름: {dataset_name}")
 
-            config, config_path = load_config(args.use_cluster, method, dataset_name)
+        config, config_path = load_config(args.use_cluster, method, dataset_name)
+
+        if args.use_cluster:
             cmd = generate_single_command_cluster(
                 config_path, method, dataset_name, encoder_type, horizon, n_cluster, d_model, beta, seed, args.postfix, patience, gpu_id, 
                 args.use_all_zero, args.use_all_random
             )
         else:
-            if dataset_name == 'electricity':
-                patience = args.patience_electricity
-            elif dataset_name == 'solar':
-                patience = args.patience_solar
-            elif dataset_name == 'metr-la':
-                patience = args.patience_metr_la
-            elif dataset_name == 'pems-bay':
-                patience = args.patience_pems_bay
-            elif dataset_name == 'traffic':
-                patience = args.patience_traffic
-            elif dataset_name == 'weather':
-                patience = args.patience_weather
-            elif dataset_name == 'exchange-rate':
-                patience = args.patience_exchange_rate
-            elif dataset_name == 'etth1':
-                patience = args.patience_etth1
-            elif dataset_name == 'etth2':
-                patience = args.patience_etth2
-            else:
-                patience = args.patience_common
-
-            config, config_path = load_config(args.use_cluster, method, dataset_name)
-
             # num_steps 설정
             num_steps = (args.num_steps + args.more_steps) if args.more_steps > 0 else args.num_steps
             if num_steps != args.num_steps:
                 postfix = f'num_steps={num_steps}-{args.postfix}'
             else:
                 postfix = args.postfix
-
             cmd = generate_single_command_baseline(
                 config_path, method, dataset_name, encoder_type, horizon, seed, postfix, patience, num_steps
             )
@@ -346,8 +328,8 @@ if __name__=="__main__":
             cmd.append(f'--runner.batch_size={args.batch_size_etth1}')
         elif dataset_name == 'etth2':
             cmd.append(f'--runner.batch_size={args.batch_size_etth2}')
-        else:
-            cmd.append(f'--runner.batch_size={args.batch_size_common}')
+        elif dataset_name == 'nasdaq':
+            cmd.append(f'--runner.batch_size={args.batch_size_nasdaq}')
         
         commands.append(cmd)
 

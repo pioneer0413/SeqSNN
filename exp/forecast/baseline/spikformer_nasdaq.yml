@@ -1,6 +1,5 @@
 _base_:
-- ../model/snn2d.yml
-- ../dataset/electricity.yml
+- ../dataset/nasdaq.yml
 _custom_imports_:
 - SeqSNN.network
 - SeqSNN.dataset
@@ -10,7 +9,7 @@ data:
   raw_label: False
   window: 168
   horizon: 24
-  normalize: 3
+  normalize: 1
 
 runner:
   type: ts
@@ -19,25 +18,27 @@ runner:
   lr: 0.001
   weight_decay: 0.0
   loss_fn: mse
-  metrics: [r2, rrse]
+  metrics: [r2, rse]
   observe: loss
   lower_is_better: True
   max_epoches: 1000
   early_stop: 30
-  batch_size: 256
+  batch_size: 64
   aggregate: True
 
 network:
-  type: SNN2d
+  type: Spikformer
+  dim: 256
+  d_ff: 1024
+  depths: 2
   num_steps: 4
-  layers: 2
-  hidden_size: 64
-  encoder_type: conv
-  pe_type: neuron
+  heads: 8
+  pe_type: none
   pe_mode: concat
   num_pe_neuron: 40
   neuron_pe_scale: 10000.0
+  encoder_type: conv
 
-runtime: 
-  seed: 41
-  output_dir: ./outputs/snn2d_horizon=24_electricity
+runtime:
+  seed: 39
+  output_dir: ./outputs/NoPE_Spikformer_horizon=24_weather
