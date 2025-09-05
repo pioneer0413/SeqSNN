@@ -1,156 +1,299 @@
-#!/usr/bin/env python3
-"""
-간단한 SeqSNN 실험 실행 스크립트 (병렬 실행)
-"""
+'''
+Module: run_experiments.py
+Author: Kang Hyun Woo
+Last Modified: September 5, 2025-09-05 14:34
+Description: SeqSNN의 다양한 시계열 예측 실험을 병렬로 실행하는 스크립트
+'''
 
 import subprocess
 import sys
 import os
 from itertools import product
-import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import threading
+import argparse
+import yaml
+import signal
 
-target_algorithm = 'spikernn'
-patience = 10
+source = None # 실행 전 반드시 로컬 환경에 맞게 설정
+config_root_dir = 'exp/forecast'
 
-"""
-모든 실험 조합을 병렬로 실행
-"""
-# 변수 정의
-dataset_names = ['solar']
-encoder_types = ['delta', 'conv']
-horizons = [6, 24, 48, 96]
-seeds = [808, 909]
+def load_config(use_cluster, method, dataset_name):
+    if use_cluster:
+        config_path = f'{config_root_dir}/cluster/{method}_cluster_{dataset_name}.yml'
+    else:
+        config_path = f'{config_root_dir}/baseline/{method}_{dataset_name}.yml'
+    with open(config_path, 'r') as file:
+        config = yaml.safe_load(file)
+    return config, config_path
 
-max_workers = 6  # 최대 동시 실행 작업 수
-
-def run_single_experiment(dataset_name, encoder_type, horizon, seed, experiment_id, total_experiments):
-    """
-    단일 실험을 실행하는 함수
-    """
-    print(f"\n[{experiment_id}/{total_experiments}] 실험 시작: {dataset_name} + {encoder_type}")
+def generate_single_command(config_path, method, dataset_name, encoder_type, horizon, seed, postfix, patience, use_cluster, num_steps=4, n_cluster=3, d_model=256, beta=2e-6, gpu_id=0):
     
-    # 명령어 구성
-    if target_algorithm == 'spikernn':
+    if use_cluster:
+        output_dir = f'./warehouse/{source}/cluster/{method}_{dataset_name}_encoder={encoder_type}_horizon={horizon}_n_cluster={n_cluster}_d_model={d_model}_beta={beta}_seed={seed}_p={postfix}'
         cmd = [
             sys.executable, '-m', 'SeqSNN.entry.tsforecast',
-            f'exp/forecast/spikernn/spikernn_{dataset_name}.yml',
+            config_path,
+            f'--network.encoder_type={encoder_type}',
+            f'--network.gpu_id={gpu_id}',
+            f'--data.horizon={horizon}',
+            f'--runtime.seed={seed}',
+            f'--network.n_cluster={n_cluster}',
+            f'--runner.early_stop={patience}',
+            f'--network.d_model={d_model}',
+            f'--runner.beta={beta}',
+        ]
+    else:
+        output_dir = f'./warehouse/{source}/baseline/{method}_{dataset_name}_encoder={encoder_type}_horizon={horizon}_seed={seed}_p={postfix}'
+        cmd = [
+            sys.executable, '-m', 'SeqSNN.entry.tsforecast',
+            config_path,
             f'--network.encoder_type={encoder_type}',
             f'--data.horizon={horizon}',
             f'--runtime.seed={seed}',
             f'--runner.early_stop={patience}',
-            f'--network.num_steps=7',
-            f'--runtime.output_dir=./warehouse/with_pe/spikernn_{dataset_name}_encoder={encoder_type}_horizon={horizon}_baseline_seed={seed}_num_steps=7'
+            f'--runtime.output_dir={output_dir}',
+            f'--network.num_steps={num_steps}',
         ]
-    elif target_algorithm == 'spiketcn':
-        cmd = [
-            sys.executable, '-m', 'SeqSNN.entry.tsforecast',
-            f'exp/forecast/tcn/spiketcn2d_{dataset_name}.yml',
-            f'--network.encoder_type={encoder_type}',
-            f'--data.horizon={horizon}',
-            f'--runtime.seed={seed}',
-            f'--runtime.output_dir=./warehouse/with_pe/spiketcn_{dataset_name}_encoder={encoder_type}_horizon={horizon}_baseline_seed={seed}'
-        ]
-    elif target_algorithm == 'ispikformer':
-        cmd = [
-            sys.executable, '-m', 'SeqSNN.entry.tsforecast',
-            f'exp/forecast/ispikformer/ispikformer_{dataset_name}.yml',
-            f'--network.encoder_type={encoder_type}',
-            f'--data.horizon={horizon}',
-            f'--runtime.seed={seed}',
-            f'--runtime.output_dir=./warehouse/with_pe/ispikformer_{dataset_name}_encoder={encoder_type}_horizon={horizon}_baseline_seed={seed}'
-        ]
-    elif target_algorithm == 'snn':
-        cmd = [
-            sys.executable, '-m', 'SeqSNN.entry.tsforecast',
-            f'exp/forecast/snn/snn2d_{dataset_name}.yml',
-            f'--network.encoder_type={encoder_type}',
-            f'--data.horizon={horizon}',
-            f'--runtime.seed={seed}',
-            f'--runtime.output_dir=./warehouse/with_pe/snn_{dataset_name}_encoder={encoder_type}_horizon={horizon}_baseline_seed={seed}'
-        ]
+
+    result_path = f'{output_dir}/checkpoints/res.json'
+
+    if os.path.exists(result_path):
+        print(f"이미 결과가 존재합니다: {result_path}")
+        return None
     
-    print(f"명령어: {' '.join(cmd)}")
+    cmd.append(f'--runtime.output_dir={output_dir}')
+
+    if method == 'ispikformer' or method == 'spikegru':
+        cmd.append(f'--runner.out_size={horizon}')
+
+    return cmd
+
+def run_parallel_experiments(commands, max_workers):
+    """
+    병렬로 실험을 실행하는 함수
+    """
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(subprocess.run, cmd, cwd=os.getcwd()): cmd for cmd in commands}
+        for future in as_completed(futures):
+            cmd = futures[future]
+            try:
+                result = future.result()
+                if result.returncode == 0:
+                    print(f"✓ 실험 성공: {' '.join(cmd)}")
+                else:
+                    print(f"✗ 실험 실패: {' '.join(cmd)} (코드: {result.returncode})")
+            except Exception as e:
+                print(f"✗ 실험 중 오류 발생: {' '.join(cmd)} ({e})")
+
+def timeout_handler(signum, frame):
+    """타임아웃 핸들러"""
+    print("\n⏰ 타임아웃! 실험을 자동으로 시작합니다...")
+    raise KeyboardInterrupt
+
+def get_user_confirmation(timeout_seconds=30):
+    """사용자 확인을 받되, 타임아웃 시 자동으로 진행"""
+    print(f"실험을 시작하시겠습니까? (y/Y 또는 Enter를 누르세요, {timeout_seconds}초 후 자동 시작): ", end='', flush=True)
+    
+    # 타임아웃 설정
+    signal.signal(signal.SIGALRM, timeout_handler)
+    signal.alarm(timeout_seconds)
     
     try:
-        # 실험 실행
-        result = subprocess.run(
-            cmd,
-            cwd=os.getcwd()
-        )
+        confirm = input()
+        signal.alarm(0)  # 타이머 취소
         
-        if result.returncode == 0:
-            print(f"✓ 실험 성공: {dataset_name} + {encoder_type}")
-            return True
+        if confirm.lower() != 'y' and confirm != '':
+            print("실험이 취소되었습니다.")
+            sys.exit(0)
+        return True
+        
+    except KeyboardInterrupt:
+        signal.alarm(0)  # 타이머 취소
+        return True  # 타임아웃 시 자동으로 실험 시작
+
+if __name__=="__main__":
+    assert source is not None, "source 변수를 로컬 환경에 맞게 설정하세요."
+
+    parser = argparse.ArgumentParser(description='SeqSNN 실험 실행 스크립트')
+    
+    '''
+    명령행 인자 정의
+    '''
+    # 실행 환경
+    parser.add_argument('--gpu_ids', type=str, nargs='+', default=['0'])
+    parser.add_argument('--max_workers', type=int, default=2)
+
+    # 런타임
+    parser.add_argument('--architectures', type=str, nargs='+', default=['spikformer'])
+    parser.add_argument('--dataset_names', type=str, nargs='+', default=['electricity', 'solar']) 
+    parser.add_argument('--encoder_types', type=str, nargs='+', default=['conv', 'delta'])
+    parser.add_argument('--horizons', type=int, nargs='+', default=[6])
+    parser.add_argument('--seeds', type=int, nargs='+', default=[777])
+    
+    parser.add_argument('--patience_electricity', type=int, default=10)
+    parser.add_argument('--patience_solar', type=int, default=10)
+    parser.add_argument('--patience_metr-la', type=int, default=10)
+    parser.add_argument('--patience_traffic', type=int, default=5)
+    parser.add_argument('--patience_weather', type=int, default=25)
+    parser.add_argument('--patience_etth1', type=int, default=30)
+    parser.add_argument('--patience_etth2', type=int, default=30)
+    
+    parser.add_argument('--batch_size_electricity', type=int, default=32)  # 전력 데이터셋 배치 크기
+    parser.add_argument('--batch_size_solar', type=int, default=32)  #
+    parser.add_argument('--batch_size_metr-la', type=int, default=32)  # Metr-la 데이터셋 배치 크기
+    parser.add_argument('--batch_size_traffic', type=int, default=16)  # 교통 데이터셋 배치 크기
+    parser.add_argument('--batch_size_weather', type=int, default=64)  # 날씨 데이터셋 배치 크기
+    parser.add_argument('--batch_size_etth1', type=int, default=128)  # etth1 데이터셋 배치 크기
+    parser.add_argument('--batch_size_etth2', type=int, default=128)  # etth2 데이터셋 배치 크기
+
+    # 클러스터 관련
+    parser.add_argument('--use_cluster', action='store_true', default=False)
+    parser.add_argument('--n_clusters', type=int, nargs='+', default=[3])
+    parser.add_argument('--d_model', type=int, nargs='+', default=[256])  # 클러스터링 모델의 차원
+    parser.add_argument('--beta', type=float, nargs='+', default=[2e-6])  # 클러스터링 모델의 손실의 비중
+
+    # 베이스라인 관련
+    parser.add_argument('--num_steps', type=int, default=4)
+    parser.add_argument('--more_steps', type=int, default=0, help='5.3.2 절 실험용')
+
+    # 포스트픽스
+    parser.add_argument('--postfix', type=str, default='unknown', help='실험 결과 디렉터리의 포스트픽스')
+
+    # 스크립트만 생성
+    parser.add_argument('--script_only', action='store_true', default=False, help='스크립트만 생성하고 실행하지 않음')
+    parser.add_argument('--timeout', type=int, default=30, help='사용자 확인 타임아웃 시간(초), 0이면 타임아웃 없음')
+
+    args = parser.parse_args()
+
+    # <<< 명령행 인자 정의 끝
+
+    # architectures, dataset_names, encoder_types, horizons, seeds, n_clusters를 조합하여 모든 실험 조합 생성
+    combinations = list(product(
+        args.architectures,
+        args.dataset_names,
+        args.encoder_types,
+        args.horizons,
+        args.n_clusters,
+        args.d_model,
+        args.beta,
+        args.seeds,
+        #args.postfix
+    ))
+
+    # << 세팅 출력
+    total_experiments = len(combinations)
+    print(f'실험 세팅:')
+    print(f"사용할 GPU IDs: {args.gpu_ids}")
+    print(f"최대 동시 실행 작업 수: {args.max_workers}")
+    print(f"대상 아키텍처: {args.architectures}")
+    print(f"데이터셋: {args.dataset_names}")
+    print(f"인코더 타입: {args.encoder_types}")
+    print(f"예측 지평선: {args.horizons}")
+    if args.use_cluster:
+        print(f"클러스터 수/모델 차원/손실 비중: {args.n_clusters}/{args.d_model}/{args.beta}")
+    print(f"단계 수: {args.num_steps} (+{args.more_steps} 추가 단계)")
+    print(f"시드: {args.seeds}")
+    print(f"포스트픽스: {args.postfix}")
+    print('*' * 50)
+    print('조기 중단 인자 설정:')
+    print(f"Electricity 데이터셋 조기 중단 인자:{args.patience_electricity}")
+    print(f"Solar 데이터셋 조기 중단 인자:      {args.patience_solar}")
+    print(f"Etth1 데이터셋 조기 중단 인자:      {args.patience_etth1}")
+    print(f"Etth2 데이터셋 조기 중단 인자:      {args.patience_etth2}")
+    print(f"Metr-la 데이터셋 조기 중단 인자:    {args.patience_metr_la}")
+    print(f"Traffic 데이터셋 조기 중단 인자:    {args.patience_traffic}")
+    print(f"Weather 데이터셋 조기 중단 인자:    {args.patience_weather}")
+    print('*' * 50)
+    print('배치 크기 설정:')
+    print(f"Electricity 데이터셋 배치 크기:    {args.batch_size_electricity}")
+    print(f"Solar 데이터셋 배치 크기:          {args.batch_size_solar}")
+    print(f"Etth1 데이터셋 배치 크기:          {args.batch_size_etth1}")
+    print(f"Etth2 데이터셋 배치 크기:          {args.batch_size_etth2}")
+    print(f"Metr-la 데이터셋 배치 크기:        {args.batch_size_metr_la}")
+    print(f"Traffic 데이터셋 배치 크기:        {args.batch_size_traffic}")
+    print(f"Weather 데이터셋 배치 크기:        {args.batch_size_weather}")
+    print('*' * 50)
+    print(f"스크립트만 생성: {args.script_only}")
+    print(f"사용자 확인 타임아웃: {args.timeout}초")
+    print('*' * 50)
+    print(f"총 실험 조합 수: {total_experiments}")
+    # << 세팅 출력 끝 
+    
+    # 사용자 확인 (타임아웃 포함)
+    if args.timeout > 0:
+        get_user_confirmation(args.timeout)
+    else:
+        # 타임아웃 없이 일반적인 확인
+        confirm = input("실험을 시작하시겠습니까? (y/Y 또는 Enter를 누르세요): ")
+        if confirm.lower() != 'y' and confirm != '':
+            print("실험이 취소되었습니다.")
+            sys.exit(0)
+
+    # gpu_ids는 원소를 반복하면서 total_experiments 수 만큼으로 리스트 생성(예: [0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, ...])
+    gpu_ids = (args.gpu_ids * (total_experiments // len(args.gpu_ids) + 1))[:total_experiments]
+    if args.script_only:
+        gpu_ids.sort()
+
+    commands = []
+    for (method, dataset_name, encoder_type, horizon, n_cluster, d_model, beta, seed), gpu_id in zip(combinations, gpu_ids):
+        if dataset_name == 'electricity':
+            patience = args.patience_electricity
+        elif dataset_name == 'solar':
+            patience = args.patience_solar
+        elif dataset_name == 'metr-la':
+            patience = args.patience_metr_la
+        elif dataset_name == 'traffic':
+            patience = args.patience_traffic
+        elif dataset_name == 'weather':
+            patience = args.patience_weather
+        elif dataset_name == 'etth1':
+            patience = args.patience_etth1
+        elif dataset_name == 'etth2':
+            patience = args.patience_etth2
         else:
-            print(f"✗ 실험 실패: {dataset_name} + {encoder_type} (코드: {result.returncode})")
-            return False
-            
-    except Exception as e:
-        print(f"✗ 실험 오류: {dataset_name} + {encoder_type} - {str(e)}")
-        return False
+            # 에러 발생
+            raise ValueError(f"알 수 없는 데이터셋 이름: {dataset_name}")
 
+        config, config_path = load_config(args.use_cluster, method, dataset_name)
 
-def run_experiments():
-    
-    # 실험 조합 생성
-    experiments = list(product(dataset_names, encoder_types, horizons, seeds))
-    
-    print(f"총 {len(experiments)}개의 실험을 병렬로 실행합니다.")
-    print(f"최대 동시 실행 작업 수: {max_workers}")
-    
-    success_count = 0
-    fail_count = 0
-    
-    # ThreadPoolExecutor를 사용한 병렬 실행
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # 모든 실험 제출
-        future_to_experiment = {
-            executor.submit(run_single_experiment, dataset_name, encoder_type, horizon, seed, i+1, len(experiments)): 
-            (dataset_name, encoder_type, horizon, seed)
-            for i, (dataset_name, encoder_type, horizon, seed) in enumerate(experiments)
-        }
+        num_steps = (args.num_steps + args.more_steps) if args.more_steps > 0 else args.num_steps
+        if num_steps != args.num_steps:
+            postfix = f'num_steps={num_steps}-{args.postfix}'
+        else:
+            postfix = args.postfix
+
+        cmd = generate_single_command(
+            config_path, method, dataset_name, encoder_type, horizon, seed, args.postfix, patience, args.use_cluster, num_steps, n_cluster, d_model, beta,  gpu_id
+        )
+
+        if cmd is None: # 이미 결과가 존재하여 건너뜀
+            continue
         
-        # 완료된 실험 처리
-        for future in as_completed(future_to_experiment):
-            dataset_name, encoder_type, horizon, seed = future_to_experiment[future]
-            try:
-                success = future.result()
-                if success:
-                    success_count += 1
-                else:
-                    fail_count += 1
-            except Exception as e:
-                print(f"✗ 실험 처리 중 오류: dataset:{dataset_name} + encoder:{encoder_type} + horizon:{horizon} + seed:{seed} - {str(e)}")
-                fail_count += 1
-    
-    # 결과 요약
-    print(f"\n{'='*50}")
-    print("실험 결과 요약")
-    print(f"{'='*50}")
-    print(f"총 실험 수: {len(experiments)}")
-    print(f"성공: {success_count}")
-    print(f"실패: {fail_count}")
-    print(f"성공률: {success_count/len(experiments)*100:.1f}%")
+        if dataset_name == 'electricity':
+            cmd.append(f'--runner.batch_size={args.batch_size_electricity}')
+        elif dataset_name == 'solar':
+            cmd.append(f'--runner.batch_size={args.batch_size_solar}')
+        elif dataset_name == 'metr-la':
+            cmd.append(f'--runner.batch_size={args.batch_size_metr_la}')
+        elif dataset_name == 'traffic':
+            cmd.append(f'--runner.batch_size={args.batch_size_traffic}')
+        elif dataset_name == 'weather':
+            cmd.append(f'--runner.batch_size={args.batch_size_weather}')
+        elif dataset_name == 'etth1':
+            cmd.append(f'--runner.batch_size={args.batch_size_etth1}')
+        elif dataset_name == 'etth2':
+            cmd.append(f'--runner.batch_size={args.batch_size_etth2}')
+        
+        commands.append(cmd)
 
-if __name__ == "__main__":
-
-    '''
-    시작하기 전, 현재 스크립트의 모든 설정값 확인하고 함수 실행
-    '''
-    print("실험을 시작합니다...")
-    # 현재 스크립트의 설정값 출력
-    print(f"타겟 알고리즘: {target_algorithm}")
-    print(f"조기 중단 기준: {patience} 에폭")
-    print("실험 조합:")
-    print(f"데이터셋: {dataset_names}")
-    print(f"인코더 타입: {encoder_types}")
-    print(f"호라이즌: {horizons}")
-    print(f"시드: {seeds}")
-    print("병렬 실행 최대 작업 수:", max_workers)
-    print("========================================")
-    # stdin으로 실행 여부 확인
-    input("계속하려면 Enter 키를 누르세요...")
-
-    run_experiments()
+    if args.script_only:
+        # 스크립트만 생성
+        script_path = 'scripts/run_experiments.sh'
+        
+        with open(script_path, 'w') as script_file:
+            for cmd in commands:
+                script_file.write(' '.join(cmd) + '; \\' + '\n')
+        print(f"실험 스크립트가 생성되었습니다: {script_path}")
+    else:
+        # 병렬로 실험 실행
+        run_parallel_experiments(commands, args.max_workers)
