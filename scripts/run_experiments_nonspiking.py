@@ -1,8 +1,8 @@
 '''
-Module: run_experiments.py
+Module: run_experiments_spiking.py
 Author: Kang Hyun Woo
-Last Modified: 2025-09-05 14:34
-Description: SeqSNN의 다양한 시계열 예측 실험을 병렬로 실행하는 스크립트
+Last Modified: 2025-09-11 13:00
+Description: SeqSNN의 다양한 시계열 예측 실험을 병렬로 실행하는 스크립트 (non-spiking 모델용)
 '''
 
 import subprocess
@@ -17,43 +17,26 @@ import signal
 source = 'source_hpclab' # 실행 전 반드시 로컬 환경에 맞게 설정
 config_root_dir = 'exp/forecast'
 
-def load_config(use_cluster, method, dataset_name):
-    if use_cluster:
-        config_path = f'{config_root_dir}/cluster/{method}_cluster_{dataset_name}.yml'
-    else:
-        config_path = f'{config_root_dir}/baseline/{method}_{dataset_name}.yml'
+def load_config(method, dataset_name):
+    if method == 'rnn' or method == 'gru':
+        config_path = f'{config_root_dir}/combined/rnn2d_{dataset_name}.yml'
+    elif method == 'tcn':
+        config_path = f'{config_root_dir}/spiketcn/tcn2d_{dataset_name}.yml'
     with open(config_path, 'r') as file:
         config = yaml.safe_load(file)
     return config, config_path
 
-def generate_single_command(config_path, method, dataset_name, encoder_type, horizon, seed, postfix, patience, use_cluster, num_steps=4, n_cluster=3, d_model=256, beta=2e-6, gpu_id=0):
+def generate_single_command(config_path, method, dataset_name, horizon, seed, postfix, patience, gpu_id=0):
     
-    if use_cluster:
-        output_dir = f'./warehouse/{source}/cluster/{method}_{dataset_name}_encoder={encoder_type}_horizon={horizon}_n_cluster={n_cluster}_d_model={d_model}_beta={beta}_seed={seed}_p={postfix}'
-        cmd = [
-            sys.executable, '-m', 'SeqSNN.entry.tsforecast',
-            config_path,
-            f'--network.encoder_type={encoder_type}',
-            f'--network.gpu_id={gpu_id}',
-            f'--data.horizon={horizon}',
-            f'--runtime.seed={seed}',
-            f'--network.n_cluster={n_cluster}',
-            f'--runner.early_stop={patience}',
-            f'--network.d_model={d_model}',
-            f'--runner.beta={beta}',
-        ]
-    else:
-        output_dir = f'./warehouse/{source}/baseline/{method}_{dataset_name}_encoder={encoder_type}_horizon={horizon}_seed={seed}_p={postfix}'
-        cmd = [
-            sys.executable, '-m', 'SeqSNN.entry.tsforecast',
-            config_path,
-            f'--network.encoder_type={encoder_type}',
-            f'--data.horizon={horizon}',
-            f'--runtime.seed={seed}',
-            f'--runner.early_stop={patience}',
-            f'--runtime.output_dir={output_dir}',
-            f'--network.num_steps={num_steps}',
-        ]
+    output_dir = f'./warehouse/{source}/nonspiking/{method}_{dataset_name}_encoder=none_horizon={horizon}_n_cluster=none_d_model=none_beta=none_seed={seed}_p=nonspiking-{postfix}'
+    cmd = [
+        sys.executable, '-m', 'SeqSNN.entry.tsforecast',
+        config_path,
+        #f'--network.gpu_id={gpu_id}',
+        f'--data.horizon={horizon}',
+        f'--runtime.seed={seed}',
+        f'--runner.early_stop={patience}',
+    ]
 
     result_path = f'{output_dir}/checkpoints/res.json'
 
@@ -63,8 +46,8 @@ def generate_single_command(config_path, method, dataset_name, encoder_type, hor
     
     cmd.append(f'--runtime.output_dir={output_dir}')
 
-    if method == 'ispikformer' or method == 'spikegru':
-        cmd.append(f'--runner.out_size={horizon}')
+    if method == 'gru':
+        cmd.append(f'--network.cell_type=gru')
 
     return cmd
 
@@ -124,37 +107,24 @@ if __name__=="__main__":
     parser.add_argument('--max_workers', type=int, default=2)
 
     # 런타임
-    parser.add_argument('--architectures', type=str, nargs='+', default=['spikformer'])
-    parser.add_argument('--dataset_names', type=str, nargs='+', default=['electricity', 'solar']) 
-    parser.add_argument('--encoder_types', type=str, nargs='+', default=['conv', 'delta'])
+    parser.add_argument('--architectures', type=str, nargs='+', default=['rnn'])
+    parser.add_argument('--dataset_names', type=str, nargs='+', default=['electricity']) 
     parser.add_argument('--horizons', type=int, nargs='+', default=[6])
     parser.add_argument('--seeds', type=int, nargs='+', default=[777])
     
     parser.add_argument('--patience_electricity', type=int, default=10)
     parser.add_argument('--patience_solar', type=int, default=10)
-    parser.add_argument('--patience_metr-la', type=int, default=10)
-    parser.add_argument('--patience_traffic', type=int, default=5)
-    parser.add_argument('--patience_weather', type=int, default=25)
     parser.add_argument('--patience_etth1', type=int, default=30)
     parser.add_argument('--patience_etth2', type=int, default=30)
+    parser.add_argument('--patience_metr-la', type=int, default=10)
+    parser.add_argument('--patience_weather', type=int, default=25)
     
     parser.add_argument('--batch_size_electricity', type=int, default=32)  # 전력 데이터셋 배치 크기
     parser.add_argument('--batch_size_solar', type=int, default=32)  #
-    parser.add_argument('--batch_size_metr-la', type=int, default=32)  # Metr-la 데이터셋 배치 크기
-    parser.add_argument('--batch_size_traffic', type=int, default=16)  # 교통 데이터셋 배치 크기
-    parser.add_argument('--batch_size_weather', type=int, default=64)  # 날씨 데이터셋 배치 크기
     parser.add_argument('--batch_size_etth1', type=int, default=128)  # etth1 데이터셋 배치 크기
     parser.add_argument('--batch_size_etth2', type=int, default=128)  # etth2 데이터셋 배치 크기
-
-    # 클러스터 관련
-    parser.add_argument('--use_cluster', action='store_true', default=False)
-    parser.add_argument('--n_clusters', type=int, nargs='+', default=[3])
-    parser.add_argument('--d_model', type=int, nargs='+', default=[256])  # 클러스터링 모델의 차원
-    parser.add_argument('--beta', type=float, nargs='+', default=[2e-6])  # 클러스터링 모델의 손실의 비중
-
-    # 베이스라인 관련
-    parser.add_argument('--num_steps', type=int, default=4)
-    parser.add_argument('--more_steps', type=int, default=0, help='5.3.2 절 실험용')
+    parser.add_argument('--batch_size_metr-la', type=int, default=32)  # Metr-la 데이터셋 배치 크기
+    parser.add_argument('--batch_size_weather', type=int, default=64)  # 날씨 데이터셋 배치 크기
 
     # 포스트픽스
     parser.add_argument('--postfix', type=str, default='unknown', help='실험 결과 디렉터리의 포스트픽스')
@@ -171,13 +141,8 @@ if __name__=="__main__":
     combinations = list(product(
         args.architectures,
         args.dataset_names,
-        args.encoder_types,
         args.horizons,
-        args.n_clusters,
-        args.d_model,
-        args.beta,
         args.seeds,
-        #args.postfix
     ))
 
     # << 세팅 출력
@@ -187,11 +152,7 @@ if __name__=="__main__":
     print(f"최대 동시 실행 작업 수: {args.max_workers}")
     print(f"대상 아키텍처: {args.architectures}")
     print(f"데이터셋: {args.dataset_names}")
-    print(f"인코더 타입: {args.encoder_types}")
     print(f"예측 지평선: {args.horizons}")
-    if args.use_cluster:
-        print(f"클러스터 수/모델 차원/손실 비중: {args.n_clusters}/{args.d_model}/{args.beta}")
-    print(f"단계 수: {args.num_steps} (+{args.more_steps} 추가 단계)")
     print(f"시드: {args.seeds}")
     print(f"포스트픽스: {args.postfix}")
     print('*' * 50)
@@ -201,7 +162,6 @@ if __name__=="__main__":
     print(f"Etth1 데이터셋 조기 중단 인자:      {args.patience_etth1}")
     print(f"Etth2 데이터셋 조기 중단 인자:      {args.patience_etth2}")
     print(f"Metr-la 데이터셋 조기 중단 인자:    {args.patience_metr_la}")
-    print(f"Traffic 데이터셋 조기 중단 인자:    {args.patience_traffic}")
     print(f"Weather 데이터셋 조기 중단 인자:    {args.patience_weather}")
     print('*' * 50)
     print('배치 크기 설정:')
@@ -210,7 +170,6 @@ if __name__=="__main__":
     print(f"Etth1 데이터셋 배치 크기:          {args.batch_size_etth1}")
     print(f"Etth2 데이터셋 배치 크기:          {args.batch_size_etth2}")
     print(f"Metr-la 데이터셋 배치 크기:        {args.batch_size_metr_la}")
-    print(f"Traffic 데이터셋 배치 크기:        {args.batch_size_traffic}")
     print(f"Weather 데이터셋 배치 크기:        {args.batch_size_weather}")
     print('*' * 50)
     print(f"스크립트만 생성: {args.script_only}")
@@ -235,7 +194,7 @@ if __name__=="__main__":
         gpu_ids.sort()
 
     commands = []
-    for (method, dataset_name, encoder_type, horizon, n_cluster, d_model, beta, seed), gpu_id in zip(combinations, gpu_ids):
+    for (method, dataset_name, horizon, seed), gpu_id in zip(combinations, gpu_ids):
         if dataset_name == 'electricity':
             patience = args.patience_electricity
         elif dataset_name == 'solar':
@@ -254,16 +213,12 @@ if __name__=="__main__":
             # 에러 발생
             raise ValueError(f"알 수 없는 데이터셋 이름: {dataset_name}")
 
-        config, config_path = load_config(args.use_cluster, method, dataset_name)
+        config, config_path = load_config(method, dataset_name)
 
-        num_steps = (args.num_steps + args.more_steps) if args.more_steps > 0 else args.num_steps
-        if num_steps != args.num_steps:
-            postfix = f'num_steps={num_steps}-{args.postfix}'
-        else:
-            postfix = args.postfix
+        postfix = args.postfix
 
         cmd = generate_single_command(
-            config_path, method, dataset_name, encoder_type, horizon, seed, postfix, patience, args.use_cluster, num_steps, n_cluster, d_model, beta,  gpu_id
+            config_path, method, dataset_name, horizon, seed, postfix, patience, gpu_id
         )
 
         if cmd is None: # 이미 결과가 존재하여 건너뜀
@@ -273,16 +228,14 @@ if __name__=="__main__":
             cmd.append(f'--runner.batch_size={args.batch_size_electricity}')
         elif dataset_name == 'solar':
             cmd.append(f'--runner.batch_size={args.batch_size_solar}')
-        elif dataset_name == 'metr-la':
-            cmd.append(f'--runner.batch_size={args.batch_size_metr_la}')
-        elif dataset_name == 'traffic':
-            cmd.append(f'--runner.batch_size={args.batch_size_traffic}')
-        elif dataset_name == 'weather':
-            cmd.append(f'--runner.batch_size={args.batch_size_weather}')
         elif dataset_name == 'etth1':
             cmd.append(f'--runner.batch_size={args.batch_size_etth1}')
         elif dataset_name == 'etth2':
             cmd.append(f'--runner.batch_size={args.batch_size_etth2}')
+        elif dataset_name == 'metr-la':
+            cmd.append(f'--runner.batch_size={args.batch_size_metr_la}')
+        elif dataset_name == 'weather':
+            cmd.append(f'--runner.batch_size={args.batch_size_weather}')
         
         commands.append(cmd)
 

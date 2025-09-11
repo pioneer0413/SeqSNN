@@ -1,6 +1,6 @@
 _base_:
 - ../model/rnn2d.yml
-- ../dataset/solar.yml
+- ../dataset/etth1.yml
 _custom_imports_:
 - SeqSNN.network
 - SeqSNN.dataset
@@ -28,7 +28,7 @@ runner:
   aggregate: True
 
 network:
-  type: TSRNN
+  type: RNN2d
   #spatial_embed: true
   #temporal_embed: true
   #temporal_emb_type: learn

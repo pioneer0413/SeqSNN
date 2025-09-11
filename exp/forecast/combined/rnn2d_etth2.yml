@@ -1,6 +1,6 @@
 _base_:
 - ../model/rnn2d.yml
-- ../dataset/solar.yml
+- ../dataset/etth2.yml
 _custom_imports_:
 - SeqSNN.network
 - SeqSNN.dataset

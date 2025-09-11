@@ -1,6 +1,6 @@
 _base_:
 - ../model/rnn2d.yml
-- ../dataset/pems-bay.yml
+- ../dataset/weather.yml
 _custom_imports_:
 - SeqSNN.network
 - SeqSNN.dataset
@@ -8,9 +8,9 @@ _custom_imports_:
 
 data:
   raw_label: False
-  window: 12
+  window: 168
   horizon: 6
-  normalize: 2
+  normalize: 3
 
 runner:
   type: ts
@@ -28,7 +28,7 @@ runner:
   aggregate: True
 
 network:
-  type: TSRNN
+  type: RNN2d
   #spatial_embed: true
   #temporal_embed: true
   #temporal_emb_type: learn
@@ -43,4 +43,4 @@ network:
 
 runtime:
   seed: 42
-  output_dir: ./outputs/rnn2d_horizon=6_pems-bay
+  output_dir: ./outputs/rnn2d_horizon=6_solar

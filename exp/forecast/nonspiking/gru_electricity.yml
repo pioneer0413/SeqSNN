@@ -1,6 +1,6 @@
 _base_:
 - ../model/rnn2d.yml
-- ../dataset/metr-la.yml
+- ../dataset/electricity.yml
 _custom_imports_:
 - SeqSNN.network
 - SeqSNN.dataset
@@ -8,9 +8,9 @@ _custom_imports_:
 
 data:
   raw_label: False
-  window: 12
+  window: 168
   horizon: 6
-  normalize: 1
+  normalize: 3
 
 runner:
   type: ts
@@ -32,15 +32,15 @@ network:
   #spatial_embed: true
   #temporal_embed: true
   #temporal_emb_type: learn
-  hidden_size: 8
+  hidden_size: 256
   dropout: 0.5
   num_layers: 2
   is_bidir: True
-  # cell_type: GRU
-  cell_type: RNN
+  cell_type: GRU
+  #cell_type: RNN
   emb_dim: 256
   emb_type: learn
 
 runtime:
   seed: 42
-  output_dir: ./outputs/rnn2d_horizon=6_metr-la
+  output_dir: ./outputs/rnn2d_horizon=6_electricity

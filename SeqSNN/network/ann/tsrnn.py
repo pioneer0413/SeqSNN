@@ -8,7 +8,7 @@ from ...module import PositionEmbedding, get_cell
 from ..base import NETWORKS
 
 
-@NETWORKS.register_module()
+@NETWORKS.register_module("RNN2d")
 class TSRNN(nn.Module):
     def __init__(
         self,

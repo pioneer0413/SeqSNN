@@ -1,7 +1,7 @@
 '''
 Module: aggregate_results.py
 Author: Kang Hyun Woo
-Last Modified: September 5, 2025-09-05 14:33
+Last Modified: 2025-09-05 14:33
 Description: 특정 디렉터리를 순회하여 'res.json' 파일을 찾고, 해당 파일에서 특정 값을 추출하여 CSV 파일로 저장하는 스크립트
 '''
 

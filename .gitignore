@@ -165,5 +165,5 @@ wandb/
 
 # User specific
 warehouse
-analysis/
 dataset_link
+!analysis/figures/
