@@ -166,4 +166,7 @@ wandb/
 # User specific
 warehouse
 dataset_link
-!analysis/figures/
+!analysis/figures/*.ipynb
+analysis/aggregated_results.csv
+analysis/run_energy_consumption.sh
+scripts/run_experiments.sh
