@@ -39,4 +39,4 @@ network:
 
 runtime: 
   seed: 42
-  # output_dir: ./outputs/tcn2d_horizon=96_solar_ks=64
+  output_dir: ./outputs/tcn2d_horizon=96_solar_ks=64

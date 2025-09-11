@@ -38,4 +38,4 @@ network:
 
 runtime: 
   seed: 42
-  # output_dir: ./outputs/tcn2d_horizon=6_metr-la
+  output_dir: ./outputs/tcn2d_horizon=6_metr-la
