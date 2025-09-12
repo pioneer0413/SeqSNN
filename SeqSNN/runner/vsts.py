@@ -1,3 +1,8 @@
+'''
+Module: timeseries.py
+Description: 시계열 예측을 위한 Runner 모듈
+'''
+
 from typing import Optional
 
 import torch

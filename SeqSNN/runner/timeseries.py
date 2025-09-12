@@ -1,13 +1,12 @@
+'''
+Module: timeseries.py
+Description: 시계열 예측을 위한 Runner 모듈
+'''
+
 from typing import List, Tuple, Optional, Union
 import numpy as np
-
 from torch import nn
-
 from .base import RUNNERS, BaseRunner
-
-from ..module.clustering import Cluster_wise_linear
-import torch
-
 
 @RUNNERS.register_module("ts", inherit=True)
 class TS(BaseRunner):
