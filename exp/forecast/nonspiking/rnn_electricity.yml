@@ -28,7 +28,7 @@ runner:
   aggregate: True
 
 network:
-  type: TSRNN
+  type: RNN2d
   #spatial_embed: true
   #temporal_embed: true
   #temporal_emb_type: learn
