@@ -22,6 +22,8 @@ def load_config(method, dataset_name):
         config_path = f'{config_root_dir}/combined/rnn2d_{dataset_name}.yml'
     elif method == 'tcn':
         config_path = f'{config_root_dir}/spiketcn/tcn2d_{dataset_name}.yml'
+    elif method == 'itransformer':
+        config_path = f'{config_root_dir}/itransformer/itransformer_{dataset_name}.yml'
     with open(config_path, 'r') as file:
         config = yaml.safe_load(file)
     return config, config_path
@@ -48,6 +50,9 @@ def generate_single_command(config_path, method, dataset_name, horizon, seed, po
 
     if method == 'gru':
         cmd.append(f'--network.cell_type=gru')
+
+    if method == 'itransformer':
+        cmd.append(f'--runner.out_size={horizon}')
 
     return cmd
 
