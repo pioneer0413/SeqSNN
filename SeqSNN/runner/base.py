@@ -256,7 +256,13 @@ class BaseRunner(nn.Module):
 
                 loss = self.loss_fn(label.squeeze(-1), pred.squeeze(-1))
 
+                '''
                 if hasattr(self.network, "use_cluster") and self.network.use_cluster and self.network.use_all_zero is False and self.network.use_all_random is False:
+                    simMatrix = get_similarity_matrix_update(batch_data=data)
+                    loss_s = similarity_loss_batch(prob=self.network.cluster_prob, simMatrix=simMatrix)
+                    loss += loss_s * self.beta
+                '''
+                if self.network.encoder_type == 'cwconv':
                     simMatrix = get_similarity_matrix_update(batch_data=data)
                     loss_s = similarity_loss_batch(prob=self.network.cluster_prob, simMatrix=simMatrix)
                     loss += loss_s * self.beta
@@ -480,13 +486,22 @@ class BaseRunner(nn.Module):
                 loss = self.loss_fn(label.squeeze(-1), pred.squeeze(-1))
 
                 # <<< Kang Hyun Woo에 의해 추가됨 (시작)
+                '''
                 if hasattr(self.network, "use_cluster") and self.network.use_cluster and self.network.use_all_zero is False and self.network.use_all_random is False:
                     #print("Using cluster loss")
                     simMatrix = get_similarity_matrix_update(batch_data=data)
                     loss_s = similarity_loss_batch(prob=self.network.cluster_prob, simMatrix=simMatrix)
                     loss += loss_s * self.beta
+                '''    
+                if self.network.encoder_type == 'cwconv':
+                    init_flag = False
+                    if init_flag is False:
+                        print("Using cluster loss")
+                        init_flag = True
+                    simMatrix = get_similarity_matrix_update(batch_data=data)
+                    loss_s = similarity_loss_batch(prob=self.network.cluster_prob, simMatrix=simMatrix)
+                    loss += loss_s * self.beta
                 # >>> Kang Hyun Woo에 의해 추가됨 (끝)
-
                 loss = loss.item()
                 eval_loss.update(loss, np.prod(label.shape))
                 eval_global_tracker.update(label, pred)

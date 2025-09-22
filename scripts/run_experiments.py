@@ -124,9 +124,9 @@ if __name__=="__main__":
     parser.add_argument('--max_workers', type=int, default=2)
 
     # 런타임
-    parser.add_argument('--architectures', type=str, nargs='+', default=['spikformer'])
-    parser.add_argument('--dataset_names', type=str, nargs='+', default=['electricity', 'solar']) 
-    parser.add_argument('--encoder_types', type=str, nargs='+', default=['conv', 'delta'])
+    parser.add_argument('--architectures', type=str, nargs='+', default=['spikernn'])
+    parser.add_argument('--dataset_names', type=str, nargs='+', default=['electricity']) 
+    parser.add_argument('--encoder_types', type=str, nargs='+', default=['conv'])
     parser.add_argument('--horizons', type=int, nargs='+', default=[6])
     parser.add_argument('--seeds', type=int, nargs='+', default=[777])
     

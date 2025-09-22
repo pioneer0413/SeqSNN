@@ -69,13 +69,22 @@ class SpikeRNN(nn.Module):
         self.pe_mode = pe_mode
         self.num_pe_neuron = num_pe_neuron
         self.neuron_pe_scale = neuron_pe_scale
-        self.temporal_encoder = SpikeEncoder[self._snn_backend][encoder_type](num_steps)
         self.use_cluster = use_cluster
         self.use_ste = use_ste
         self.gpu_id = gpu_id
         self.n_cluster = n_cluster
         self.use_all_zero = use_all_zero
         self.use_all_random = use_all_random
+        self.encoder_type = encoder_type
+
+        if encoder_type == 'cwconv':
+            self.temporal_encoder = SpikeEncoder[self._snn_backend][encoder_type](num_steps, 
+                                                                                  n_vars=input_size,
+                                                                                  seq_len=max_length,
+                                                                                  d_model=d_model,
+                                                                                  device=gpu_id)
+        else:    
+            self.temporal_encoder = SpikeEncoder[self._snn_backend][encoder_type](num_steps)
 
         self.pe = PositionEmbedding(
             pe_type=pe_type,
@@ -132,7 +141,7 @@ class SpikeRNN(nn.Module):
     def forward(
         self,
         inputs: torch.Tensor,
-        if_update: bool = False,
+        if_update: bool = True,
     ):
         functional.reset_net(self)
 
@@ -146,13 +155,17 @@ class SpikeRNN(nn.Module):
             if if_update:
                 self.cluster_assigner.cluster_emb = nn.Parameter(cluster_emb, requires_grad=True)
 
-        hiddens = self.temporal_encoder(inputs)  # T, B, C, L
+        if self.encoder_type == 'cwconv':
+            hiddens, self.cluster_prob = self.temporal_encoder(inputs)  # T, B, C, L
+        else:
+            hiddens = self.temporal_encoder(inputs)  # T, B, C, L
 
         '''
         Inject cluster probabilities
         '''
         if self.use_cluster: # v1
             self.cluster_prob = cluster_prob  # [B, C, K]
+            #print(self.cluster_prob.shape)
             cluster_prob = cluster_prob.permute(2, 0, 1) # [K, B, C] < [B, C, K]
             cluster_prob = cluster_prob.unsqueeze(-1)  # [K, B, C, 1]
             cluster_prob = cluster_prob.repeat(1, 1, 1, hiddens.size(3))
@@ -171,11 +184,15 @@ class SpikeRNN(nn.Module):
                 cluster_prob = torch.rand_like(cluster_prob)
                 #print('check cluster_prob min-max', cluster_prob.min(), cluster_prob.max())
 
+            #print(f'Cluster Prob - Max: {cluster_prob.max().item():.4f}, Min: {cluster_prob.min().item():.4f}, Mean: {cluster_prob.mean().item():.4f}, Var: {cluster_prob.var().item():.4f}')
+
             self.spike_rate = cluster_prob.mean()
             self.spike_count = cluster_prob.sum()
             self.spike_shape = cluster_prob.shape
 
             hiddens = torch.cat((hiddens, cluster_prob), dim=0)  # T+K, B, C, L
+            #print(f'hiddens Max: {hiddens.max().item():.4f}, Min: {hiddens.min().item():.4f}, Mean: {hiddens.mean().item():.4f}, Var: {hiddens.var().item():.4f}')
+        
 
         hiddens = hiddens.transpose(-2, -1)  # T, B, L, C
         T, B, L, _ = hiddens.size()  # T, B, L, D

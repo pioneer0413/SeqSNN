@@ -165,8 +165,9 @@ wandb/
 
 # User specific
 warehouse
+warehouse_legacy
+test
 dataset_link
-!analysis/figures/*.ipynb
-analysis/aggregated_results.csv
-analysis/run_energy_consumption.sh
+analysis
 scripts/run_experiments.sh
+scripts/run_experiments_cluster_v2.sh

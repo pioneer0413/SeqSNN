@@ -90,8 +90,17 @@ class Spikformer(nn.Module):
         self.n_cluster = n_cluster
         self.use_all_zero = use_all_zero
         self.use_all_random = use_all_random
+        self.encoder_type = encoder_type
 
-        self.temporal_encoder = SpikeEncoder[self._snn_backend][encoder_type](num_steps)
+        if encoder_type == 'cwconv':
+            self.temporal_encoder = SpikeEncoder[self._snn_backend][encoder_type](num_steps, 
+                                                                                  n_vars=input_size,
+                                                                                  seq_len=max_length,
+                                                                                  d_model=d_model,
+                                                                                  device=gpu_id)
+        else:    
+            self.temporal_encoder = SpikeEncoder[self._snn_backend][encoder_type](num_steps)
+
         self.pe = PositionEmbedding(
             pe_type=pe_type,
             pe_mode=pe_mode,
@@ -171,7 +180,10 @@ class Spikformer(nn.Module):
             if if_update:
                 self.cluster_assigner.cluster_emb = nn.Parameter(cluster_emb, requires_grad=True)
 
-        x = self.temporal_encoder(x)  # B L C -> T B C L
+        if self.encoder_type == 'cwconv':
+            x, self.cluster_prob = self.temporal_encoder(x)  # B L C -> T B C L
+        else:
+            x = self.temporal_encoder(x)  # B L C -> T B C L
 
         '''
         Inject cluster probabilities

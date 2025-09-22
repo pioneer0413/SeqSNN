@@ -15,14 +15,14 @@ class Cluster_assigner(nn.Module):
         self.linear = nn.Linear(seq_len, d_model)
         
         # Cluster embeddings
-        self.cluster_emb = torch.empty(self.n_cluster, self.d_model).to(device)
+        self.cluster_emb = nn.Parameter(torch.empty(self.n_cluster, self.d_model).to(device))
         nn.init.kaiming_uniform_(self.cluster_emb, a=math.sqrt(5))
         
         self.l2norm = lambda x: F.normalize(x, dim=1, p=2)
         self.p2c = CrossAttention(d_model, n_heads=1)
         self.i = 0
 
-    def forward(self, x, cluster_emb):     
+    def forward(self, x, cluster_emb, return_type='individual'):     
         # x: [bs, seq_len, n_vars]
         # cluster_emb: [n_cluster, d_model]
         n_vars = x.shape[-1]
@@ -46,7 +46,10 @@ class Cluster_assigner(nn.Module):
 
         #print(f'prob_avg: {prob_avg.shape}, prob_temp: {prob_temp.shape}, prob: {prob.shape}')
     
-        return prob_temp.reshape(prob.shape), cluster_emb_avg
+        if return_type == 'individual':
+            return prob_temp.reshape(prob.shape), cluster_emb_avg
+        elif return_type == 'average':
+            return prob_avg, cluster_emb_avg
      
     def concrete_bern(self, prob, temp = 0.07):
         random_noise = torch.empty_like(prob).uniform_(1e-10, 1 - 1e-10).to(prob.device)
