@@ -44,6 +44,8 @@ def generate_single_command(config_path, method, dataset_name, encoder_type, hor
         ]
     else:
         output_dir = f'./warehouse/{source}/baseline/{method}_{dataset_name}_encoder={encoder_type}_horizon={horizon}_seed={seed}_p={postfix}'
+        if encoder_type == 'cwconv':
+            output_dir = f'./warehouse/{source}/baseline/{method}_{dataset_name}_encoder={encoder_type}_horizon={horizon}_n_cluster={n_cluster}_d_model={d_model}_beta={beta}_seed={seed}_p={postfix}'
         cmd = [
             sys.executable, '-m', 'SeqSNN.entry.tsforecast',
             config_path,
@@ -54,6 +56,9 @@ def generate_single_command(config_path, method, dataset_name, encoder_type, hor
             f'--runtime.output_dir={output_dir}',
             f'--network.num_steps={num_steps}',
         ]
+
+    if encoder_type == 'cwconv':
+        cmd.append(f'--runner.beta={beta}')
 
     result_path = f'{output_dir}/checkpoints/res.json'
 

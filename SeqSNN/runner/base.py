@@ -472,6 +472,7 @@ class BaseRunner(nn.Module):
         eval_global_tracker = GlobalTracker(self.metrics, self.metric_fn)
         start_time = time.time()
         validset.load()
+        cluster_loss_check_flag = False
         with torch.no_grad():
             for _, (data, label) in enumerate(loader):
                 if use_cuda():
@@ -494,10 +495,9 @@ class BaseRunner(nn.Module):
                     loss += loss_s * self.beta
                 '''    
                 if self.network.encoder_type == 'cwconv':
-                    init_flag = False
-                    if init_flag is False:
+                    if cluster_loss_check_flag is False:
                         print("Using cluster loss")
-                        init_flag = True
+                        cluster_loss_check_flag = True
                     simMatrix = get_similarity_matrix_update(batch_data=data)
                     loss_s = similarity_loss_batch(prob=self.network.cluster_prob, simMatrix=simMatrix)
                     loss += loss_s * self.beta
