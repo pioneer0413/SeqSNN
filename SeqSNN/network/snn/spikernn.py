@@ -63,6 +63,8 @@ class SpikeRNN(nn.Module):
         use_all_zero: bool = False,  # Use all-zero cluster probabilities
         use_all_random: bool = False,  # Use all-random cluster probabilities
         d_model: Optional[int] = 512,  # Dimension of the model for clustering
+        k_c: Optional[int] = 3,  # Temporal kernel size for Cluster-wise ConvEncoder
+        k_t: Optional[int] = 3,  # Channel-wise kernel size for Cluster
     ):
         super().__init__()
         self.pe_type = pe_type
@@ -78,7 +80,9 @@ class SpikeRNN(nn.Module):
         self.encoder_type = encoder_type
 
         if encoder_type == 'cwconv':
-            self.temporal_encoder = SpikeEncoder[self._snn_backend][encoder_type](num_steps, 
+            self.temporal_encoder = SpikeEncoder[self._snn_backend][encoder_type](num_steps,
+                                                                                  channel_wise_kernel=k_c,
+                                                                                  temporal_kernel=k_t,
                                                                                   n_vars=input_size,
                                                                                   seq_len=max_length,
                                                                                   d_model=d_model,

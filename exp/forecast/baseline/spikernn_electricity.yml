@@ -40,6 +40,8 @@ network:
   neuron_pe_scale: 1000.0
   n_cluster: 3
   d_model: 256
+  k_c: 3
+  k_t: 3
 
 
 runtime:

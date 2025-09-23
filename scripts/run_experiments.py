@@ -26,7 +26,7 @@ def load_config(use_cluster, method, dataset_name):
         config = yaml.safe_load(file)
     return config, config_path
 
-def generate_single_command(config_path, method, dataset_name, encoder_type, horizon, seed, postfix, patience, use_cluster, num_steps=4, n_cluster=3, d_model=256, beta=2e-6, gpu_id=0):
+def generate_single_command(config_path, method, dataset_name, encoder_type, horizon, seed, postfix, patience, use_cluster, num_steps=4, n_cluster=3, d_model=256, beta=2e-6, k_c=3, k_t=3, gpu_id=0):
     
     if use_cluster:
         output_dir = f'./warehouse/{source}/cluster/{method}_{dataset_name}_encoder={encoder_type}_horizon={horizon}_n_cluster={n_cluster}_d_model={d_model}_beta={beta}_seed={seed}_p={postfix}'
@@ -61,6 +61,8 @@ def generate_single_command(config_path, method, dataset_name, encoder_type, hor
             cmd.append(f'--network.n_cluster={n_cluster}')
             cmd.append(f'--network.d_model={d_model}')
             cmd.append(f'--runner.beta={beta}')
+            cmd.append(f'--network.k_c={k_c}')
+            cmd.append(f'--network.k_t={k_t}')
 
     if encoder_type == 'cwconv':
         cmd.append(f'--runner.beta={beta}')
@@ -162,6 +164,10 @@ if __name__=="__main__":
     parser.add_argument('--d_model', type=int, nargs='+', default=[256])  # 클러스터링 모델의 차원
     parser.add_argument('--beta', type=float, nargs='+', default=[2e-6])  # 클러스터링 모델의 손실의 비중
 
+    # Cluster-wise ConvEncoder 전용 파라미터
+    parser.add_argument('--k_c', type=int, nargs='+', default=[3])
+    parser.add_argument('--k_t', type=int, nargs='+', default=[3])
+
     # 베이스라인 관련
     parser.add_argument('--num_steps', type=int, default=4)
     parser.add_argument('--more_steps', type=int, default=0, help='5.3.2 절 실험용')
@@ -187,7 +193,8 @@ if __name__=="__main__":
         args.d_model,
         args.beta,
         args.seeds,
-        #args.postfix
+        args.k_c,
+        args.k_t,
     ))
 
     # << 세팅 출력
@@ -201,6 +208,7 @@ if __name__=="__main__":
     print(f"예측 지평선: {args.horizons}")
     if 'cwconv' in args.encoder_types  or args.use_cluster:
         print(f"클러스터 수/모델 차원/손실 비중: {args.n_clusters}/{args.d_model}/{args.beta}")
+        print(f"Cluster-wise ConvEncoder k_c/k_t: {args.k_c}/{args.k_t}")
     print(f"단계 수: {args.num_steps} (+{args.more_steps} 추가 단계)")
     print(f"시드: {args.seeds}")
     print(f"포스트픽스: {args.postfix}")
@@ -245,7 +253,7 @@ if __name__=="__main__":
         gpu_ids.sort()
 
     commands = []
-    for (method, dataset_name, encoder_type, horizon, n_cluster, d_model, beta, seed), gpu_id in zip(combinations, gpu_ids):
+    for (method, dataset_name, encoder_type, horizon, n_cluster, d_model, beta, seed, k_c, k_t), gpu_id in zip(combinations, gpu_ids):
         if dataset_name == 'electricity':
             patience = args.patience_electricity
         elif dataset_name == 'solar':
@@ -273,7 +281,7 @@ if __name__=="__main__":
             postfix = args.postfix
 
         cmd = generate_single_command(
-            config_path, method, dataset_name, encoder_type, horizon, seed, postfix, patience, args.use_cluster, num_steps, n_cluster, d_model, beta,  gpu_id
+            config_path, method, dataset_name, encoder_type, horizon, seed, postfix, patience, args.use_cluster, num_steps, n_cluster, d_model, beta, k_c, k_t, gpu_id
         )
 
         if cmd is None: # 이미 결과가 존재하여 건너뜀
