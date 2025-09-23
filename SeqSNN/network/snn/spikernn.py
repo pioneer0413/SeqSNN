@@ -65,6 +65,7 @@ class SpikeRNN(nn.Module):
         d_model: Optional[int] = 512,  # Dimension of the model for clustering
         k_c: Optional[int] = 3,  # Temporal kernel size for Cluster-wise ConvEncoder
         k_t: Optional[int] = 3,  # Channel-wise kernel size for Cluster
+        channel_concat: bool = False,  # Concatenate cluster probabilities along channel dimension
     ):
         super().__init__()
         self.pe_type = pe_type
@@ -78,6 +79,7 @@ class SpikeRNN(nn.Module):
         self.use_all_zero = use_all_zero
         self.use_all_random = use_all_random
         self.encoder_type = encoder_type
+        self.channel_concat = channel_concat
 
         if encoder_type == 'cwconv':
             self.temporal_encoder = SpikeEncoder[self._snn_backend][encoder_type](num_steps,
@@ -119,9 +121,15 @@ class SpikeRNN(nn.Module):
             self.dim = hidden_size + num_pe_neuron
         else:
             self.dim = hidden_size
+        
+        if self.channel_concat:
+            self.dim += n_cluster  # 채널 차원에 클러스터 확률을 Concatenation 하므로 차원 추가
 
         if self.pe_type == "neuron" and self.pe_mode == "concat":
-            self.encoder = nn.Linear(input_size + num_pe_neuron, self.dim)
+            if self.channel_concat:
+                self.encoder = nn.Linear(input_size + num_pe_neuron + n_cluster, self.dim)
+            else:
+                self.encoder = nn.Linear(input_size + num_pe_neuron, self.dim)
         else:
             self.encoder = nn.Linear(input_size, self.dim)
         self.init_lif = neuron.LIFNode(
@@ -156,9 +164,6 @@ class SpikeRNN(nn.Module):
             cluster_prob, cluster_emb = self.cluster_assigner(
                 inputs, self.cluster_assigner.cluster_emb
             )
-            if if_update:
-                self.cluster_assigner.cluster_emb = nn.Parameter(cluster_emb, requires_grad=True)
-
         if self.encoder_type == 'cwconv':
             hiddens, self.cluster_prob = self.temporal_encoder(inputs)  # T, B, C, L
         else:
@@ -168,8 +173,8 @@ class SpikeRNN(nn.Module):
         Inject cluster probabilities
         '''
         if self.use_cluster: # v1
+            
             self.cluster_prob = cluster_prob  # [B, C, K]
-            #print(self.cluster_prob.shape)
             cluster_prob = cluster_prob.permute(2, 0, 1) # [K, B, C] < [B, C, K]
             cluster_prob = cluster_prob.unsqueeze(-1)  # [K, B, C, 1]
             cluster_prob = cluster_prob.repeat(1, 1, 1, hiddens.size(3))
@@ -182,22 +187,22 @@ class SpikeRNN(nn.Module):
 
             if self.use_all_zero:
                 cluster_prob = torch.zeros_like(cluster_prob)
-                #print('check cluster_prob min-max', cluster_prob.min(), cluster_prob.max())
             elif self.use_all_random:
                 assert self.use_all_zero is False, "Cannot use both all-zero and all-random cluster probabilities."
                 cluster_prob = torch.rand_like(cluster_prob)
-                #print('check cluster_prob min-max', cluster_prob.min(), cluster_prob.max())
-
-            #print(f'Cluster Prob - Max: {cluster_prob.max().item():.4f}, Min: {cluster_prob.min().item():.4f}, Mean: {cluster_prob.mean().item():.4f}, Var: {cluster_prob.var().item():.4f}')
-
+            
             self.spike_rate = cluster_prob.mean()
             self.spike_count = cluster_prob.sum()
             self.spike_shape = cluster_prob.shape
 
-            hiddens = torch.cat((hiddens, cluster_prob), dim=0)  # T+K, B, C, L
-            #print(f'hiddens Max: {hiddens.max().item():.4f}, Min: {hiddens.min().item():.4f}, Mean: {hiddens.mean().item():.4f}, Var: {hiddens.var().item():.4f}')
+            if self.channel_concat:
+                cluster_prob_avg = self.cluster_prob.mean(dim=1)  # [B, K] <- [B, C, K]
+                cluster_feat = cluster_prob_avg.unsqueeze(0).unsqueeze(-1)  # [1, B, K, 1]
+                cluster_feat = cluster_feat.expand(hiddens.size(0), -1, -1, hiddens.size(3))  # [T, B, K, L]
+                hiddens = torch.cat((hiddens, cluster_feat), dim=2)  # T, B, C+K, L
+            else: # spike-time axis concat
+                hiddens = torch.cat((hiddens, cluster_prob), dim=0)  # T+K, B, C, L
         
-
         hiddens = hiddens.transpose(-2, -1)  # T, B, L, C
         T, B, L, _ = hiddens.size()  # T, B, L, D
         if self.pe_type != "none":

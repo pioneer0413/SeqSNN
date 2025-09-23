@@ -26,10 +26,10 @@ def load_config(use_cluster, method, dataset_name):
         config = yaml.safe_load(file)
     return config, config_path
 
-def generate_single_command(config_path, method, dataset_name, encoder_type, horizon, seed, postfix, patience, use_cluster, num_steps=4, n_cluster=3, d_model=256, beta=2e-6, k_c=3, k_t=3, gpu_id=0):
+def generate_single_command(config_path, method, dataset_name, encoder_type, horizon, seed, postfix, patience, use_cluster, zero_concat=False, channel_concat=False, num_steps=4, n_cluster=3, d_model=256, beta=2e-6, k_c=3, k_t=3, gpu_id=0):
     
     if use_cluster:
-        output_dir = f'./warehouse/{source}/cluster/{method}_{dataset_name}_encoder={encoder_type}_horizon={horizon}_n_cluster={n_cluster}_d_model={d_model}_beta={beta}_seed={seed}_p={postfix}'
+        output_dir = f'./warehouse/{source}/cluster/{method}_{dataset_name}_encoder={encoder_type}_horizon={horizon}_n_cluster={n_cluster}_d_model={d_model}_beta={beta}_zc={zero_concat}_cc={channel_concat}_seed={seed}_p={postfix}'
         cmd = [
             sys.executable, '-m', 'SeqSNN.entry.tsforecast',
             config_path,
@@ -42,6 +42,10 @@ def generate_single_command(config_path, method, dataset_name, encoder_type, hor
             f'--network.d_model={d_model}',
             f'--runner.beta={beta}',
         ]
+        if zero_concat:
+            cmd.append(f'--network.use_all_random=True')
+        if channel_concat:
+            cmd.append(f'--network.channel_concat=True')
     else:
         output_dir = f'./warehouse/{source}/baseline/{method}_{dataset_name}_encoder={encoder_type}_horizon={horizon}_seed={seed}_p={postfix}'
         if encoder_type == 'cwconv':
@@ -161,8 +165,10 @@ if __name__=="__main__":
     # 클러스터 관련
     parser.add_argument('--use_cluster', action='store_true', default=False)
     parser.add_argument('--n_clusters', type=int, nargs='+', default=[3])
-    parser.add_argument('--d_model', type=int, nargs='+', default=[256])  # 클러스터링 모델의 차원
+    parser.add_argument('--d_model', type=int, nargs='+', default=[512])  # 클러스터링 모델의 차원
     parser.add_argument('--beta', type=float, nargs='+', default=[2e-6])  # 클러스터링 모델의 손실의 비중
+    parser.add_argument('--zero_concat', action='store_true', default=False, help='Zero-Concatenation 사용 여부')
+    parser.add_argument('--channel_concat', action='store_true', default=False, help='Channel dimension Concatenation 사용 여부')
 
     # Cluster-wise ConvEncoder 전용 파라미터
     parser.add_argument('--k_c', type=int, nargs='+', default=[3])
@@ -208,7 +214,12 @@ if __name__=="__main__":
     print(f"예측 지평선: {args.horizons}")
     if 'cwconv' in args.encoder_types  or args.use_cluster:
         print(f"클러스터 수/모델 차원/손실 비중: {args.n_clusters}/{args.d_model}/{args.beta}")
-        print(f"Cluster-wise ConvEncoder k_c/k_t: {args.k_c}/{args.k_t}")
+        if 'cwconv' in args.encoder_types:
+            print(f"Cluster-wise ConvEncoder k_c/k_t: {args.k_c}/{args.k_t}")
+        if args.zero_concat:
+            print("Zero-Concatenation 사용")
+        if args.channel_concat:
+            print("Channel dimension Concatenation 사용")
     print(f"단계 수: {args.num_steps} (+{args.more_steps} 추가 단계)")
     print(f"시드: {args.seeds}")
     print(f"포스트픽스: {args.postfix}")
@@ -281,7 +292,7 @@ if __name__=="__main__":
             postfix = args.postfix
 
         cmd = generate_single_command(
-            config_path, method, dataset_name, encoder_type, horizon, seed, postfix, patience, args.use_cluster, num_steps, n_cluster, d_model, beta, k_c, k_t, gpu_id
+            config_path, method, dataset_name, encoder_type, horizon, seed, postfix, patience, args.use_cluster, args.zero_concat, args.channel_concat, num_steps, n_cluster, d_model, beta, k_c, k_t, gpu_id
         )
 
         if cmd is None: # 이미 결과가 존재하여 건너뜀

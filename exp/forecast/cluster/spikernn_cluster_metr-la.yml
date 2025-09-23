@@ -42,6 +42,7 @@ network:
   use_ste: True
   gpu_id: 2
   n_cluster: 3
+  channel_concat: False
 
 runtime:
   seed: 40

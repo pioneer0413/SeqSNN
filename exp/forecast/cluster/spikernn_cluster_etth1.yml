@@ -45,6 +45,7 @@ network:
   use_all_zero: False  # Use all-zero cluster probabilities
   use_all_random: False  # Use all-random cluster probabilities
   d_model: 512
+  channel_concat: False
 
 runtime:
   seed: 39
