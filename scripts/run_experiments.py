@@ -57,6 +57,11 @@ def generate_single_command(config_path, method, dataset_name, encoder_type, hor
             f'--network.num_steps={num_steps}',
         ]
 
+        if encoder_type == 'cwconv':
+            cmd.append(f'--network.n_cluster={n_cluster}')
+            cmd.append(f'--network.d_model={d_model}')
+            cmd.append(f'--runner.beta={beta}')
+
     if encoder_type == 'cwconv':
         cmd.append(f'--runner.beta={beta}')
 
@@ -194,7 +199,7 @@ if __name__=="__main__":
     print(f"데이터셋: {args.dataset_names}")
     print(f"인코더 타입: {args.encoder_types}")
     print(f"예측 지평선: {args.horizons}")
-    if args.use_cluster:
+    if 'cwconv' in args.encoder_types  or args.use_cluster:
         print(f"클러스터 수/모델 차원/손실 비중: {args.n_clusters}/{args.d_model}/{args.beta}")
     print(f"단계 수: {args.num_steps} (+{args.more_steps} 추가 단계)")
     print(f"시드: {args.seeds}")
