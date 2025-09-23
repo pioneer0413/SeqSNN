@@ -1,8 +1,13 @@
+'''
+TODO:
+- 테스트 후 encoder.py에 통합 예정 (2025.09.23)
+'''
+
 import torch
 from torch import nn
 from spikingjelly.activation_based import surrogate, neuron
 
-from ....module.clustering import Cluster_assigner
+from ...clustering import Cluster_assigner
 
 
 tau = 2.0  # beta = 1 - 1/tau
@@ -148,24 +153,76 @@ class Cluster_wise_ConvEncoder(nn.Module):
         # Cluster assignment
         cluster_prob, cluster_emb = self.cluster_assigner(inputs, self.cluster_assigner.cluster_emb, return_type='average') # [C, K], [K, d_model]
 
-        emb_distance = torch.cdist(cluster_emb, cluster_emb, p=2)  # [K, K]
-        
         # Channel re-ordering
+        emb_distance = torch.cdist(cluster_emb, cluster_emb, p=2)  # [K, K]
+        reordered_cluster_indices = self.reorder_clusters_by_distance(emb_distance)  # [K]
+        cluster_prob = cluster_prob[:, reordered_cluster_indices]  # [C, K] 재정렬된 클러스터 확률
+        #print(f'Reordered cluster indices: {reordered_cluster_indices}')
         cluster_indices = torch.argmax(cluster_prob, dim=-1)  # [C]
         _, sorted_indices = torch.sort(cluster_indices)  # [C]
         inputs = inputs[:, :, sorted_indices]  # Re-order channels based on cluster assignment
 
         # Cluster-wise convolution
         outputs = []
-        for conv_layer in self.convs:
-            inputs_permuted = inputs.permute(0, 2, 1).unsqueeze(1)  # B, 1, C, L
-            conv_out = conv_layer(inputs_permuted)  # B, output_size, C, L
+        for idx in reordered_cluster_indices:
+            conv_layer = self.convs[idx]
+            inputs_permuted = inputs.permute(0, 2, 1).unsqueeze(1)
+            conv_out = conv_layer(inputs_permuted)
             outputs.append(conv_out)
         outputs = torch.stack(outputs, dim=-1)  # B, output_size, C, L, n_cluster
         outputs = torch.einsum('btclk,ck->btcl', outputs, cluster_prob)  # B, T, C, L
         outputs = outputs.permute(1, 0, 2, 3)  # T, B, C, L
         spks = self.lif(outputs)  # T, B, C, L
         return spks, cluster_prob
+
+    def reorder_clusters_by_distance(self, emb_distance):
+        """
+        클러스터 임베딩 간 거리를 기반으로 클러스터를 재정렬합니다.
+        
+        Args:
+            emb_distance (torch.Tensor): [K, K] 크기의 클러스터 간 거리 행렬
+        
+        Returns:
+            torch.Tensor: 재정렬된 클러스터 인덱스 (ex: [2, 0, 1])
+        """
+        K = emb_distance.size(0)
+        
+        # 거리 행렬에서 모든 쌍의 거리 추출 (대각선 제외)
+        pairs = []
+        for i in range(K):
+            for j in range(i+1, K):  # 중복 제거 (거리 행렬은 대칭)
+                pairs.append((i, j, emb_distance[i, j].item()))
+        
+        # 거리 기준으로 오름차순 정렬
+        pairs.sort(key=lambda x: x[2])
+        
+        # 클러스터 순서 결정 (그리디 방식)
+        ordered_clusters = []
+        
+        # 처음 두 클러스터는 가장 가까운 쌍
+        first_pair = pairs[0]
+        ordered_clusters.extend([first_pair[0], first_pair[1]])
+        
+        # 남은 클러스터들을 현재 집합에 가장 가까운 순서대로 추가
+        remaining = set(range(K)) - set(ordered_clusters)
+        
+        while remaining:
+            # 현재까지의 집합과 가장 가까운 남은 클러스터 찾기
+            best_dist = float('inf')
+            best_cluster = -1
+            
+            for cluster in remaining:
+                # 이미 선택된 클러스터들과의 평균 거리 계산
+                avg_dist = sum(emb_distance[cluster, c].item() for c in ordered_clusters) / len(ordered_clusters)
+                
+                if avg_dist < best_dist:
+                    best_dist = avg_dist
+                    best_cluster = cluster
+            
+            ordered_clusters.append(best_cluster)
+            remaining.remove(best_cluster)
+        
+        return torch.tensor(ordered_clusters, device=emb_distance.device)
 
 def channel_shuffle(inputs, shuffle_dim=2):
     '''
