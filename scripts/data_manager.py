@@ -111,7 +111,7 @@ if __name__ == '__main__':
         elif rse_value != 'empty':
             df.at[idx, 'target.rrse'] = rse_value
         else:
-            df.at[idx, 'target.rrse'] = 'empty'
+            df.at[idx, 'target.rrse'] = None  # rrse_value가 없으면 100.0으로 설정
 
     print(df.head())
     # 첫 번째 행의 모든 값 출력
