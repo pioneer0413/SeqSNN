@@ -157,10 +157,23 @@ class Cluster_wise_ConvEncoder(nn.Module):
         emb_distance = torch.cdist(cluster_emb, cluster_emb, p=2)  # [K, K]
         reordered_cluster_indices = self.reorder_clusters_by_distance(emb_distance)  # [K]
         cluster_prob = cluster_prob[:, reordered_cluster_indices]  # [C, K] 재정렬된 클러스터 확률
-        #print(f'Reordered cluster indices: {reordered_cluster_indices}')
+
+        # 각 채널의 클러스터 ID 할당
         cluster_indices = torch.argmax(cluster_prob, dim=-1)  # [C]
-        _, sorted_indices = torch.sort(cluster_indices)  # [C]
-        inputs = inputs[:, :, sorted_indices]  # Re-order channels based on cluster assignment
+
+        # 각 클러스터 ID에 우선순위 값 부여 (reordered_cluster_indices의 역매핑)
+        cluster_priority = torch.zeros(len(reordered_cluster_indices), dtype=torch.long, device=cluster_indices.device)
+        for new_idx, orig_idx in enumerate(reordered_cluster_indices):
+            cluster_priority[orig_idx] = new_idx
+
+        # 할당된 클러스터 ID를 우선순위 값으로 변환
+        channel_priority = cluster_priority[cluster_indices]
+
+        # 우선순위 값으로 정렬 (낮은 값이 먼저 오도록)
+        _, sorted_indices = torch.sort(channel_priority)
+
+        # 채널 순서 재배열
+        inputs = inputs[:, :, sorted_indices]  # Re-order channels based on cluster priority
 
         # Cluster-wise convolution
         outputs = []

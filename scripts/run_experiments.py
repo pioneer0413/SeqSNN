@@ -43,7 +43,7 @@ def generate_single_command(config_path, method, dataset_name, encoder_type, hor
             f'--runner.beta={beta}',
         ]
         if zero_concat:
-            cmd.append(f'--network.use_all_random=True')
+            cmd.append(f'--network.use_all_zero=True')
         if channel_concat:
             cmd.append(f'--network.channel_concat=True')
     else:
