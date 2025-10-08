@@ -14,7 +14,7 @@ import argparse
 import yaml
 import signal
 
-source = 'source_hpclab' # 실행 전 반드시 로컬 환경에 맞게 설정
+source = 'warehouse/source_hpclab' # 실행 전 반드시 로컬 환경에 맞게 설정
 config_root_dir = 'exp/forecast'
 
 def load_config(use_cluster, method, dataset_name):
@@ -195,6 +195,14 @@ if __name__=="__main__":
     args = parser.parse_args()
 
     # <<< 명령행 인자 정의 끝
+
+    # 디렉터리 생성
+    # `source` 변수 아래에 'baseline/', 'cluster/', 'nonspiking/' 디렉터리가 없다면 생성
+    for sub_dir in ['baseline', 'cluster', 'nonspiking']:
+        dir_path = f'{source}/{sub_dir}'
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+            print(f"디렉터리를 생성했습니다: {dir_path}")
 
     # architectures, dataset_names, encoder_types, horizons, seeds, n_clusters를 조합하여 모든 실험 조합 생성
     combinations = list(product(

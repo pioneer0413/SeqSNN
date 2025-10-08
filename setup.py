@@ -66,7 +66,7 @@ def setup():
         ],
         python_requires=">=3.8",
         install_requires=[
-            "torch",
+            "torch<2.6.0",
             "protobuf==4.23",
             "utilsd",
             "click",
@@ -74,7 +74,7 @@ def setup():
             "tqdm",
             "tensorboard",
             "numba",
-            "numpy",
+            "numpy<2.0",
             "scikit_learn==1.3",
             "pandas==2.1",
             "snntorch",
