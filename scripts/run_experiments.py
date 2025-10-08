@@ -146,21 +146,28 @@ if __name__=="__main__":
     parser.add_argument('--horizons', type=int, nargs='+', default=[6])
     parser.add_argument('--seeds', type=int, nargs='+', default=[777])
     
-    parser.add_argument('--patience_electricity', type=int, default=10)
-    parser.add_argument('--patience_solar', type=int, default=10)
-    parser.add_argument('--patience_metr-la', type=int, default=10)
+    parser.add_argument('--patience_electricity', type=int, default=20)
+    parser.add_argument('--patience_solar', type=int, default=20)
+    parser.add_argument('--patience_metr-la', type=int, default=20)
     parser.add_argument('--patience_traffic', type=int, default=5)
-    parser.add_argument('--patience_weather', type=int, default=25)
-    parser.add_argument('--patience_etth1', type=int, default=30)
-    parser.add_argument('--patience_etth2', type=int, default=30)
+    parser.add_argument('--patience_weather', type=int, default=20)
+    parser.add_argument('--patience_etth1', type=int, default=40)
+    parser.add_argument('--patience_etth2', type=int, default=40)
     
-    parser.add_argument('--batch_size_electricity', type=int, default=32)  # 전력 데이터셋 배치 크기
-    parser.add_argument('--batch_size_solar', type=int, default=32)  #
-    parser.add_argument('--batch_size_metr-la', type=int, default=32)  # Metr-la 데이터셋 배치 크기
+    parser.add_argument('--batch_size_electricity', type=int, default=64)  # 전력 데이터셋 배치 크기
+    parser.add_argument('--batch_size_solar', type=int, default=64)  #
+    parser.add_argument('--batch_size_metr-la', type=int, default=64)  # Metr-la 데이터셋 배치 크기
     parser.add_argument('--batch_size_traffic', type=int, default=16)  # 교통 데이터셋 배치 크기
     parser.add_argument('--batch_size_weather', type=int, default=64)  # 날씨 데이터셋 배치 크기
     parser.add_argument('--batch_size_etth1', type=int, default=128)  # etth1 데이터셋 배치 크기
     parser.add_argument('--batch_size_etth2', type=int, default=128)  # etth2 데이터셋 배치 크기
+
+    parser.add_argument('--window_electricity', type=int, default=168)  # 1시간 단위
+    parser.add_argument('--window_solar', type=int, default=144)  # 10분 단위
+    parser.add_argument('--window_metr-la', type=int, default=288)  # 5분 단위
+    parser.add_argument('--window_weather', type=int, default=144)  # 10분 단위
+    parser.add_argument('--window_etth1', type=int, default=168)  # 1시간 단위
+    parser.add_argument('--window_etth2', type=int, default=168)  # 1시간 단위
 
     # 클러스터 관련
     parser.add_argument('--use_cluster', action='store_true', default=False)
@@ -212,6 +219,13 @@ if __name__=="__main__":
     print(f"데이터셋: {args.dataset_names}")
     print(f"인코더 타입: {args.encoder_types}")
     print(f"예측 지평선: {args.horizons}")
+    print(f'Electricity 윈도우 크기: {args.window_electricity}')
+    print(f'Solar 윈도우 크기:       {args.window_solar}')
+    print(f'Etth1 윈도우 크기:       {args.window_etth1}')
+    print(f'Etth2 윈도우 크기:       {args.window_etth2}')
+    print(f'Metr-la 윈도우 크기:     {args.window_metr_la}')
+    print(f'Weather 윈도우 크기:     {args.window_weather}')
+    print('*' * 50)
     if 'cwconv' in args.encoder_types  or args.use_cluster:
         print(f"클러스터 수/모델 차원/손실 비중: {args.n_clusters}/{args.d_model}/{args.beta}")
         if 'cwconv' in args.encoder_types:
@@ -300,18 +314,24 @@ if __name__=="__main__":
         
         if dataset_name == 'electricity':
             cmd.append(f'--runner.batch_size={args.batch_size_electricity}')
+            cmd.append(f'--data.window={args.window_electricity}')
         elif dataset_name == 'solar':
             cmd.append(f'--runner.batch_size={args.batch_size_solar}')
+            cmd.append(f'--data.window={args.window_solar}')
         elif dataset_name == 'metr-la':
             cmd.append(f'--runner.batch_size={args.batch_size_metr_la}')
+            cmd.append(f'--data.window={args.window_metr_la}')
         elif dataset_name == 'traffic':
             cmd.append(f'--runner.batch_size={args.batch_size_traffic}')
         elif dataset_name == 'weather':
             cmd.append(f'--runner.batch_size={args.batch_size_weather}')
+            cmd.append(f'--data.window={args.window_weather}')
         elif dataset_name == 'etth1':
             cmd.append(f'--runner.batch_size={args.batch_size_etth1}')
+            cmd.append(f'--data.window={args.window_etth1}')
         elif dataset_name == 'etth2':
             cmd.append(f'--runner.batch_size={args.batch_size_etth2}')
+            cmd.append(f'--data.window={args.window_etth2}')
         
         commands.append(cmd)
 
