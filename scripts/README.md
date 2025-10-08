@@ -1,8 +1,4 @@
-## 1. 초기화
-```
-```
-
-## 2. 실험 수행
+## 1. 실험 수행
 실행 전 `source`를 반드시 로컬 환경에 맞게 설정
 ### Non-spiking(ANN-based)
 ```
@@ -17,7 +13,7 @@ python scripts/run_experiments.py
 python scripts/run_experiments.py --use_cluster
 ```
 
-## 3. 결과 확보
+## 2. 결과 확보
 #### 파일 설명
 - `data_manager.py`: 설정 키 값을 참조하여, CSV 형식으로 결과 파일 생성
     - `target_dir`을 반드시 로컬 환경에 맞게 설정
