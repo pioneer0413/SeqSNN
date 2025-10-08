@@ -1,6 +1,6 @@
 data:
   type: TSMSDataset
-  file: data/ETTh2_wide.txt
+  file: data/ETTh2.txt
   window: 168
   horizon: 3
   train_ratio: 0.6

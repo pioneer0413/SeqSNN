@@ -1,6 +1,6 @@
 data:
   type: TSMSDataset
-  file: data/Weather_wide.txt
+  file: data/Weather.txt
   window: 168
   horizon: 3
   train_ratio: 0.6
