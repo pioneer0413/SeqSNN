@@ -14,7 +14,7 @@ import argparse
 import yaml
 import signal
 
-source = 'source_hpclab' # 실행 전 반드시 로컬 환경에 맞게 설정
+source = 'warehouse/source_hpclab' # 실행 전 반드시 로컬 환경에 맞게 설정
 config_root_dir = 'exp/forecast'
 
 def load_config(method, dataset_name):
@@ -30,7 +30,7 @@ def load_config(method, dataset_name):
 
 def generate_single_command(config_path, method, dataset_name, horizon, seed, postfix, patience, gpu_id=0):
     
-    output_dir = f'./warehouse/{source}/nonspiking/{method}_{dataset_name}_encoder=none_horizon={horizon}_n_cluster=none_d_model=none_beta=none_seed={seed}_p=nonspiking-{postfix}'
+    output_dir = f'./{source}/nonspiking/{method}_{dataset_name}_encoder=none_horizon={horizon}_n_cluster=none_d_model=none_beta=none_seed={seed}_p=nonspiking-{postfix}'
     cmd = [
         sys.executable, '-m', 'SeqSNN.entry.tsforecast',
         config_path,

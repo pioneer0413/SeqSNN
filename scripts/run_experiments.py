@@ -29,7 +29,7 @@ def load_config(use_cluster, method, dataset_name):
 def generate_single_command(config_path, method, dataset_name, encoder_type, horizon, seed, postfix, patience, use_cluster, zero_concat=False, channel_concat=False, num_steps=4, n_cluster=3, d_model=256, beta=2e-6, k_c=3, k_t=3, gpu_id=0):
     
     if use_cluster:
-        output_dir = f'./warehouse/{source}/cluster/{method}_{dataset_name}_encoder={encoder_type}_horizon={horizon}_n_cluster={n_cluster}_d_model={d_model}_beta={beta}_zc={zero_concat}_cc={channel_concat}_seed={seed}_p={postfix}'
+        output_dir = f'./{source}/cluster/{method}_{dataset_name}_encoder={encoder_type}_horizon={horizon}_n_cluster={n_cluster}_d_model={d_model}_beta={beta}_zc={zero_concat}_cc={channel_concat}_seed={seed}_p={postfix}'
         cmd = [
             sys.executable, '-m', 'SeqSNN.entry.tsforecast',
             config_path,
@@ -47,9 +47,9 @@ def generate_single_command(config_path, method, dataset_name, encoder_type, hor
         if channel_concat:
             cmd.append(f'--network.channel_concat=True')
     else:
-        output_dir = f'./warehouse/{source}/baseline/{method}_{dataset_name}_encoder={encoder_type}_horizon={horizon}_seed={seed}_p={postfix}'
+        output_dir = f'./{source}/baseline/{method}_{dataset_name}_encoder={encoder_type}_horizon={horizon}_seed={seed}_p={postfix}'
         if encoder_type == 'cwconv':
-            output_dir = f'./warehouse/{source}/baseline/{method}_{dataset_name}_encoder={encoder_type}_horizon={horizon}_n_cluster={n_cluster}_d_model={d_model}_beta={beta}_kc={k_c}_kt={k_t}_seed={seed}_p={postfix}'
+            output_dir = f'./{source}/baseline/{method}_{dataset_name}_encoder={encoder_type}_horizon={horizon}_n_cluster={n_cluster}_d_model={d_model}_beta={beta}_kc={k_c}_kt={k_t}_seed={seed}_p={postfix}'
         cmd = [
             sys.executable, '-m', 'SeqSNN.entry.tsforecast',
             config_path,
