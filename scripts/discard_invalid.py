@@ -1,3 +1,9 @@
+'''
+Module: discard_invalid.py
+Author: Hyunwoo Kang
+Last Modified: 2025-10-08 17:13
+Description: 특정 디렉터리를 순회하여 'checkpoints' 디렉터리가 존재하는 실험 중에서, 'checkpoints' 내부에 'res.json' 파일이 없는 경우 해당 실험 디렉터리를 삭제하는 스크립트
+'''
 target_dir = 'warehouse/'
 
 import os

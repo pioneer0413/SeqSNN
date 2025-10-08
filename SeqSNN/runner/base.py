@@ -1,8 +1,8 @@
 '''
 Module: base.py
-Modified by: Kang Hyun Woo
-Last Modified: 2025-09-12 14:58
-Description: Runner의 기본 클래스 정의
+Modified by: Hyunwoo Kang
+Last Modified: 2025-10-08 17:08
+Changes: 클러스터 손실 관련 로직, GPU 선택 로직 추가
 '''
 
 from typing import Optional, List
@@ -25,7 +25,7 @@ from utilsd.earlystop import EarlyStop, EarlyStopStatus
 from ..common.function import get_loss_fn, get_metric_fn, printt
 from ..common.utils import AverageMeter, GlobalTracker, to_torch
 
-from ..module.clustering import get_similarity_matrix_update, similarity_loss_batch # Kang Hyun Woo에 의해 추가됨
+from ..module.clustering import get_similarity_matrix_update, similarity_loss_batch # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
 
 class RUNNERS(metaclass=Registry, name="runner"):
     pass
@@ -49,13 +49,13 @@ class BaseRunner(nn.Module):
         model_path: Optional[str] = None,
         output_dir: Optional[Path] = None,
         checkpoint_dir: Optional[Path] = None,
-        beta: float = 2e-6, # Kang Hyun Woo에 의해 추가됨
+        beta: float = 2e-6, # Hyunwoo Kang에 의해 추가됨
     ) -> None:
         super().__init__()
         if not hasattr(self, "hyper_paras"):
             self.hyper_paras = {}
 
-        # <<< Kang Hyun Woo에 의해 추가됨 (시작)
+        # << Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
         # multi gpu
         if hasattr(network, 'gpu_id') and network.gpu_id is not None:
             self.gpu_id = self.get_min_gpu_id(static_id=network.gpu_id) if torch.cuda.is_available() else None
@@ -65,7 +65,7 @@ class BaseRunner(nn.Module):
         if isinstance(self.gpu_id, np.integer):
             self.gpu_id = int(self.gpu_id)
         torch.cuda.set_device(self.gpu_id)
-        # >>> Kang Hyun Woo에 의해 추가됨 (끝)
+        # >> Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
 
         self._build_network(network, **self.hyper_paras)
         self._init_optimization(
@@ -82,15 +82,15 @@ class BaseRunner(nn.Module):
         )
         self._init_logger(output_dir)
         self.checkpoint_dir = checkpoint_dir
-        self.beta = beta # Kang Hyun Woo에 의해 추가됨
+        self.beta = beta # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
         if model_path is not None:
             self.load(model_path)
         
-        # <<< Kang Hyun Woo에 의해 수정됨 (시작)
+        # << # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
         if torch.cuda.is_available():
             print(f"Using GPU: {self.gpu_id}")
             self.cuda(device=self.gpu_id)
-        # >>> Kang Hyun Woo에 의해 수정됨 (끝)
+        # >> # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
 
     def _build_network(self, network, *args, **kwargs) -> None:
         # TODO: encoder decoder decompose
@@ -160,7 +160,7 @@ class BaseRunner(nn.Module):
 
     def _init_scheduler(self, loader_length):
         """Setup learning rate scheduler"""
-        # <<< Kang Hyun Woo에 의해 추가됨 (시작)
+        # << Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
         self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
             self.optimizer,
             T_0=10,  # Number of epochs for the first restart
@@ -168,7 +168,7 @@ class BaseRunner(nn.Module):
             eta_min=1e-6,  # Minimum learning rate
             last_epoch=-1
         )
-        # >>> Kang Hyun Woo에 의해 추가됨 (끝)
+        # >> Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
 
     def _post_batch(
         self,
@@ -227,9 +227,9 @@ class BaseRunner(nn.Module):
         start_epoch, best_res = self._resume()
         best_epoch = best_res.pop("best_epoch", 0)
         best_score = self.early_stop.best
-        termination_epoch = self.max_epoches # Kang Hyun Woo에 의해 추가됨
+        termination_epoch = self.max_epoches # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
 
-        # <<< Kang Hyun Woo에 의해 수정됨 (시작)
+        # << Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
         # main loop
         for epoch in range(start_epoch, self.max_epoches):
             total_time_start = time.time()
@@ -356,14 +356,14 @@ class BaseRunner(nn.Module):
             # 조기 종료 시 예상 종료 시간 추정
             early_estimated_end_time = (self.early_stop.patience - self.early_stop.num_bad_epochs) * total_time
             print(f"{epoch}\t'MEET': {maximum_estimated_end_time:.2f} s | 'EEET': {early_estimated_end_time:.2f} s")
-        # Kang Hyun Woo에 의해 수정됨 (끝)
+        # >> Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
 
         # release the space of train and valid dataset
         trainset.freeup()
         if validset is not None:
             validset.freeup()
 
-        # Kang Hyun Woo에 의해 수정됨 (시작)
+        # << Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
         # finish training, test, save model and write logs
         self._load_weight(self.best_params)
         if testset is not None:
@@ -395,11 +395,11 @@ class BaseRunner(nn.Module):
         self.writer.add_hparams(
             self.hyper_paras, {"result": best_score, "best_epoch": best_epoch}
         )
-        # >>> Kang Hyun Woo에 의해 수정됨 (끝)
+        # >> Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
 
         return self
 
-    # <<< Kang Hyun Woo에 의해 수정됨 (시작)
+    # << Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
     def _checkpoint(self, cur_epoch, best_res, checkpoint_dir=None):
         checkpoint_data = {
             "earlystop": self.early_stop.state_dict(),
@@ -424,9 +424,9 @@ class BaseRunner(nn.Module):
             f"{self.checkpoint_dir / 'resume.pth' if checkpoint_dir is None else checkpoint_dir / 'resume.pth'}",
             __name__,
         )
-    # >>> Kang Hyun Woo에 의해 수정됨 (끝)
+    # >> Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
 
-    # <<< Kang Hyun Woo에 의해 수정됨 (시작)
+    # << Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
     def _resume(self):
         if (self.checkpoint_dir / "resume.pth").exists():
             print(f"Resume from {self.checkpoint_dir / 'resume.pth'}", __name__)
@@ -442,7 +442,7 @@ class BaseRunner(nn.Module):
         else:
             print(f"No checkpoint found in {self.checkpoint_dir}", __name__)
             return 0, {}
-    # >>> Kang Hyun Woo에 의해 수정됨 (끝)
+    # >> Hyunwoo Kang에 의해 수정됨 (끝)
 
     def evaluate(self, validset: Dataset, epoch: Optional[int] = None) -> dict:
         """Evaluate the model on the given dataset.
@@ -480,7 +480,7 @@ class BaseRunner(nn.Module):
                 # print(pred, label)
                 loss = self.loss_fn(label.squeeze(-1), pred.squeeze(-1))
 
-                # <<< Kang Hyun Woo에 의해 추가됨 (시작)
+                # << Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
                 if (hasattr(self.network, "encoder_type") and self.network.encoder_type == 'cwconv') or (hasattr(self.network, "use_cluster") and self.network.use_cluster and self.network.use_all_zero is False and self.network.use_all_random is False):
                     if cluster_loss_check_flag is False:
                         print("Using cluster loss")
@@ -488,7 +488,7 @@ class BaseRunner(nn.Module):
                     simMatrix = get_similarity_matrix_update(batch_data=data)
                     loss_s = similarity_loss_batch(prob=self.network.cluster_prob, simMatrix=simMatrix)
                     loss += loss_s * self.beta
-                # >>> Kang Hyun Woo에 의해 추가됨 (끝)
+                # >> Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
                 loss = loss.item()
                 eval_loss.update(loss, np.prod(label.shape))
                 eval_global_tracker.update(label, pred)
@@ -533,14 +533,14 @@ class BaseRunner(nn.Module):
             np.ndarray: The model output.
         """
         
-        # <<< Kang Hyun Woo에 의해 추가됨 (시작)
+        # << Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
         '''
         Load best model parameters
         '''
         if (self.checkpoint_dir / "model_best.pkl").exists():
             #print(f"Load best model from {self.checkpoint_dir / 'model_best.pkl'}", __name__)
             self.load(self.checkpoint_dir / "model_best.pkl")
-        # >>> Kang Hyun Woo에 의해 추가됨 (끝)
+        # >> Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
 
         self.eval()
         preds = []
@@ -569,7 +569,7 @@ class BaseRunner(nn.Module):
         prediction.to_pickle(self.checkpoint_dir / (name + "_pre.pkl"))
         return prediction
     
-    # <<< Kang Hyun Woo에 의해 추가됨 (시작)
+    # << Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
     def get_min_gpu_id(self, static_id: Optional[int]=None)->int:
         '''
         if static_id is given, return it directly.
@@ -584,4 +584,4 @@ class BaseRunner(nn.Module):
         memory = [int(s.split(" ")[0]) for s in output.decode().split("\n")[1:-1]]
         assert len(memory) == torch.cuda.device_count()
         return np.argmin(memory)
-    # >>> Kang Hyun Woo에 의해 추가됨 (끝)
+    # >> Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)

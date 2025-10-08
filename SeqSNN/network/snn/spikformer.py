@@ -1,3 +1,9 @@
+'''
+Module: spikformer.py
+Modified by: Hyunwoo Kang
+Last Modified: 2025-10-08 17:06
+Changes: 채널 간 구조적 정보를 스파이크 형태로 통합하는 모듈 및 통합 로직 추가
+'''
 from typing import Optional
 
 from pathlib import Path
@@ -10,7 +16,7 @@ from ...module.positional_encoding import PositionEmbedding
 from ...module.spike_encoding import SpikeEncoder
 from ...module.spike_attention import Block
 
-from ...module.clustering import Cluster_assigner
+from ...module.clustering import Cluster_assigner # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
 
 tau = 2.0  # beta = 1 - 1/tau
 backend = "torch"
@@ -68,13 +74,13 @@ class Spikformer(nn.Module):
         input_size: Optional[int] = None,
         weight_file: Optional[Path] = None,
         encoder_type: Optional[str] = "conv",
-        use_cluster: bool = False,
-        use_ste: bool = False,  # Use Straight-Through Estimator for cluster probabilities
-        use_all_zero: bool = False,  # Use all-zero cluster probabilities
-        use_all_random: bool = False,  # Use all-random cluster probabilities
-        gpu_id: Optional[int] = None,
-        n_cluster: Optional[int] = 3,  # Number of clusters for clustering
-        d_model: Optional[int] = 512,  # Dimension of the model for clustering
+        use_cluster: bool = False, # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        use_ste: bool = False,  # Use Straight-Through Estimator for cluster probabilities # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        use_all_zero: bool = False,  # Use all-zero cluster probabilities # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        use_all_random: bool = False,  # Use all-random cluster probabilities # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        gpu_id: Optional[int] = None, # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        n_cluster: Optional[int] = 3,  # Number of clusters for clustering # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        d_model: Optional[int] = 512,  # Dimension of the model for clustering # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
     ):
         super().__init__()
         self.dim = dim
@@ -84,14 +90,15 @@ class Spikformer(nn.Module):
         self.pe_type = pe_type
         self.pe_mode = pe_mode
         self.num_pe_neuron = num_pe_neuron
-        self.gpu_id = gpu_id
-        self.use_cluster = use_cluster
-        self.use_ste = use_ste
-        self.n_cluster = n_cluster
-        self.use_all_zero = use_all_zero
-        self.use_all_random = use_all_random
-        self.encoder_type = encoder_type
+        self.gpu_id = gpu_id # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        self.use_cluster = use_cluster # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        self.use_ste = use_ste # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        self.n_cluster = n_cluster # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        self.use_all_zero = use_all_zero # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        self.use_all_random = use_all_random # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        self.encoder_type = encoder_type # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
 
+        # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
         if encoder_type == 'cwconv':
             self.temporal_encoder = SpikeEncoder[self._snn_backend][encoder_type](num_steps, 
                                                                                   n_vars=input_size,
@@ -142,6 +149,7 @@ class Spikformer(nn.Module):
             ]
         )
 
+        # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
         '''
         Cluster assigner
         '''
@@ -170,6 +178,7 @@ class Spikformer(nn.Module):
     def forward(self, x, if_update: bool = False):
         functional.reset_net(self)
 
+        # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
         '''
         Get cluster probabilities and embeddings
         '''
@@ -180,11 +189,13 @@ class Spikformer(nn.Module):
             if if_update:
                 self.cluster_assigner.cluster_emb = nn.Parameter(cluster_emb, requires_grad=True)
 
+        # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
         if self.encoder_type == 'cwconv':
             x, self.cluster_prob = self.temporal_encoder(x)  # B L C -> T B C L
         else:
             x = self.temporal_encoder(x)  # B L C -> T B C L
 
+        # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
         '''
         Inject cluster probabilities
         '''
@@ -227,14 +238,17 @@ class Spikformer(nn.Module):
     def hidden_size(self):
         return self.dim
     
+    # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
     @property
     def cluster_spike_rate(self):
         return self.spike_rate if hasattr(self, 'spike_rate') else None
     
+    # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
     @property
     def cluster_spike_count(self):
         return self.spike_count if hasattr(self, 'spike_count') else None
     
+    # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
     @property
     def cluster_spike_shape(self):
         return self.spike_shape if hasattr(self, 'spike_shape') else None

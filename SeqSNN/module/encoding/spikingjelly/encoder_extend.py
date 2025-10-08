@@ -1,8 +1,9 @@
 '''
-TODO:
-- 테스트 후 encoder.py에 통합 예정 (2025.09.23)
+Module: encoder_extend.py
+Modified by: Hyunwoo Kang
+Last Modified: 2025-10-08 16:54
+Changes: Cluster-wise ConvEncoder 추가
 '''
-
 import torch
 from torch import nn
 from spikingjelly.activation_based import surrogate, neuron
@@ -99,6 +100,7 @@ class ConvEncoder(nn.Module):
             spks = channel_shuffle(spks, shuffle_dim=0)  # Shuffle channels
         return spks
 
+# Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
 class Cluster_wise_ConvEncoder(nn.Module):
     def __init__(self, output_size: int, channel_wise_kernel: int = 3, temporal_kernel: int = 3,
                  n_vars=321, n_cluster=3, seq_len=168, d_model=256, device='cuda'):

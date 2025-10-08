@@ -1,3 +1,9 @@
+'''
+Module: spikegru.py
+Modified by: Hyunwoo Kang
+Last Modified: 2025-10-08 17:02
+Changes: 클러스터링 관련 속성 및 메서드 추가
+'''
 from typing import Optional
 from pathlib import Path
 
@@ -10,7 +16,7 @@ from torch import nn
 
 from ..base import NETWORKS
 
-from ...module.clustering import Cluster_assigner
+from ...module.clustering import Cluster_assigner # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
 
 
 class GRUCell(nn.Module):
@@ -223,13 +229,13 @@ class TSSNNGRU2D(nn.Module):
         max_length: Optional[int] = None,
         weight_file: Optional[Path] = None,
         encoder_type: Optional[str] = "conv",
-        use_cluster: bool = False,
-        use_ste: bool = False,  # Use Straight-Through Estimator for cluster probabilities
-        gpu_id: Optional[int] = None,
-        n_cluster: Optional[int] = 3,  # Number of clusters for clustering
-        use_all_zero: bool = False,  # Use all-zero cluster probabilities
-        use_all_random: bool = False,  # Use all-random cluster probabilities
-        d_model: Optional[int] = 512,  # Dimension of the model for clustering
+        use_cluster: bool = False, # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        use_ste: bool = False,  # Use Straight-Through Estimator for cluster probabilities # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        gpu_id: Optional[int] = None, # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        n_cluster: Optional[int] = 3,  # Number of clusters for clustering # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        use_all_zero: bool = False,  # Use all-zero cluster probabilities # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        use_all_random: bool = False,  # Use all-random cluster probabilities # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        d_model: Optional[int] = 512,  # Dimension of the model for clustering # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
     ):
         super().__init__()
         if encoder_type == "conv":
@@ -240,13 +246,14 @@ class TSSNNGRU2D(nn.Module):
             raise ValueError(f"Unknown encoder type {encoder_type}")
         
         
-        self.use_cluster = use_cluster
-        self.use_ste = use_ste
-        self.gpu_id = gpu_id
-        self.n_cluster = n_cluster
-        self.use_all_zero = use_all_zero
-        self.use_all_random = use_all_random
+        self.use_cluster = use_cluster # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        self.use_ste = use_ste # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        self.gpu_id = gpu_id # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        self.n_cluster = n_cluster # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        self.use_all_zero = use_all_zero # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        self.use_all_random = use_all_random # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
 
+        # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
         '''
         Cluster assigner
         '''
@@ -261,6 +268,7 @@ class TSSNNGRU2D(nn.Module):
                 device=self.gpu_id
             )
 
+        # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
         if self.use_cluster:
             self.net = nn.Sequential(
                 *[
@@ -293,7 +301,7 @@ class TSSNNGRU2D(nn.Module):
     def forward(
         self,
         inputs: torch.Tensor,
-        if_update: bool = False,  # If True, update cluster probabilities
+        if_update: bool = False,  # If True, update cluster probabilities # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
     ):
         utils.reset(self.encoder)
         for layer in self.net:
@@ -303,6 +311,7 @@ class TSSNNGRU2D(nn.Module):
 
         #print(f'hiddens.shape: {h.shape}')
 
+        # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
         '''
         Get cluster probabilities and embeddings
         '''
@@ -312,6 +321,8 @@ class TSSNNGRU2D(nn.Module):
             )
             if if_update:
                 self.cluster_assigner.cluster_emb = nn.Parameter(cluster_emb, requires_grad=True)
+        
+        # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
         '''
         Inject cluster probabilities
         '''
@@ -355,14 +366,17 @@ class TSSNNGRU2D(nn.Module):
     def output_size(self):
         return self.__output_size
     
+    # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
     @property
     def cluster_spike_rate(self):
         return self.spike_rate if hasattr(self, 'spike_rate') else None
     
+    # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
     @property
     def cluster_spike_count(self):
         return self.spike_count if hasattr(self, 'spike_count') else None
     
+    # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
     @property
     def cluster_spike_shape(self):
         return self.spike_shape if hasattr(self, 'spike_shape') else None

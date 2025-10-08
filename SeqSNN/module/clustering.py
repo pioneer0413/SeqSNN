@@ -1,3 +1,9 @@
+'''
+Module: clustering.py
+Modified by: Hyunwoo Kang
+Last Modified: 2025-10-08 16:57
+Changes: Cluster_assigner, Cluster_wise_linear, similarity matrix 및 loss 함수 추가
+'''
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

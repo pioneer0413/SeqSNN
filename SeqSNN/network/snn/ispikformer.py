@@ -7,8 +7,6 @@ from ..base import NETWORKS
 from ...module.spike_encoding import SpikeEncoder
 from ...module.spike_attention import Block
 
-from ...module.clustering import Cluster_assigner
-import torch
 
 tau = 2.0  # beta = 1 - 1/tau
 backend = "torch"
@@ -57,13 +55,6 @@ class iSpikformer(nn.Module):
         input_size: Optional[int] = None,
         weight_file: Optional[Path] = None,
         encoder_type: Optional[str] = "conv",
-        use_cluster: bool = False,
-        use_ste: bool = False,  # Use Straight-Through Estimator for cluster probabilities
-        gpu_id: Optional[int] = None,
-        n_cluster: Optional[int] = 3,  # Number of clusters for clustering
-        use_all_zero: bool = False,  # Use all-zero cluster probabilities
-        use_all_random: bool = False,  # Use all-random cluster probabilities
-        d_model: Optional[int] = 512,  # Dimension of the model for clustering
     ):
         super().__init__()
         self.dim = dim
@@ -71,12 +62,6 @@ class iSpikformer(nn.Module):
         self.T = num_steps
         self.depths = depths
         self.encoder = SpikeEncoder[self._snn_backend][encoder_type](num_steps)
-        self.use_cluster = use_cluster
-        self.use_ste = use_ste
-        self.gpu_id = gpu_id
-        self.n_cluster = n_cluster
-        self.use_all_zero = use_all_zero
-        self.use_all_random = use_all_random
 
         self.emb = DataEmbedding_inverted(max_length, dim)
         self.blocks = nn.ModuleList(
@@ -97,20 +82,6 @@ class iSpikformer(nn.Module):
 
         self.apply(self._init_weights)
 
-        '''
-        Cluster assigner
-        '''
-        if self.use_cluster:
-            self.input_size = input_size
-            self.max_length = max_length
-            self.cluster_assigner = Cluster_assigner(
-                n_vars=input_size,
-                n_cluster=self.n_cluster,  # This is a dummy value, will be set later
-                seq_len=max_length,
-                d_model=d_model,
-                device=self.gpu_id
-            )
-
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
             nn.init.normal_(m.weight, std=0.02)
@@ -125,39 +96,7 @@ class iSpikformer(nn.Module):
         functional.reset_net(self.encoder)
         functional.reset_net(self.emb)
         functional.reset_net(self.blocks)
-
-        '''
-        Get cluster probabilities and embeddings
-        '''
-        if self.use_cluster:
-            cluster_prob, cluster_emb = self.cluster_assigner(
-                x, self.cluster_assigner.cluster_emb
-            )
-            if if_update:
-                self.cluster_emb = nn.Parameter(cluster_emb, requires_grad=True)
-
         x = self.encoder(x)  # B L C -> T B C L
-
-        '''
-        Inject cluster probabilities
-        '''
-        if self.use_cluster: # v1
-            self.cluster_prob = cluster_prob  # [B, C, K]
-            cluster_prob = cluster_prob.permute(2, 0, 1) # [K, B, C] < [B, C, K]
-            cluster_prob = cluster_prob.unsqueeze(-1)  # [K, B, C, 1]
-            cluster_prob = cluster_prob.repeat(1, 1, 1, x.size(3))
-            cluster_prob_soft = cluster_prob
-            cluster_prob_hard = torch.bernoulli(cluster_prob_soft)  # [K, B, C, L] - Bernoulli sampling
-            if self.use_ste:
-                cluster_prob = cluster_prob_soft + (cluster_prob_hard - cluster_prob_soft).detach()  # [K, B, C, L]
-            else:
-                cluster_prob = cluster_prob_soft
-
-            self.spike_rate = cluster_prob.mean()
-            self.spike_count = cluster_prob.sum()
-            self.spike_shape = cluster_prob.shape
-
-            x = torch.cat((x, cluster_prob), dim=0)  # T+K, B, C, L
 
         x = x.transpose(2, 3)  # T B L C
 
@@ -174,15 +113,3 @@ class iSpikformer(nn.Module):
     @property
     def hidden_size(self):
         return self.dim
-    
-    @property
-    def cluster_spike_rate(self):
-        return self.spike_rate if hasattr(self, 'spike_rate') else None
-    
-    @property
-    def cluster_spike_count(self):
-        return self.spike_count if hasattr(self, 'spike_count') else None
-    
-    @property
-    def cluster_spike_shape(self):
-        return self.spike_shape if hasattr(self, 'spike_shape') else None

@@ -1,3 +1,9 @@
+'''
+Module: tsforecast.py
+Modified by: Hyunwoo Kang
+Last Modified: 2025-10-08 16:51
+Changes: 과도하게 용량이 큰 파일 생성을 방지하기 위해 46:48 라인 주석 처리
+'''
 import warnings
 
 from utilsd import get_output_dir, get_checkpoint_dir, setup_experiment
@@ -37,31 +43,11 @@ def run_train(config):
         out_size=config.runner.out_size or trainset.num_classes,
     )
     runner.fit(trainset, validset, testset)
-    #runner.predict(trainset, "train")
-    #runner.predict(validset, "valid")
-    #runner.predict(testset, "test")
+    #runner.predict(trainset, "train") # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+    #runner.predict(validset, "valid") # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+    #runner.predict(testset, "test") # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
 
 
 if __name__ == "__main__":
     _config = SeqSNNConfig.fromcli()
-
-    time_start = time.time()
     run_train(_config)
-    execution_time = time.time() - time_start
-
-    save_path = 'outputs/execution_time.csv'
-    header = ['output_dir', 'execution_time']
-    record = [_config.runtime.output_dir, execution_time]
-    '''
-    if not save_path exists, then create it and write the header with CSV format
-    else append the record to the CSV file
-    '''
-    import os
-    import csv
-    if not os.path.exists(save_path):
-        with open(save_path, 'w', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow(header)
-    with open(save_path, 'a', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(record)

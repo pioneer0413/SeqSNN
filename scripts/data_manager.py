@@ -1,3 +1,9 @@
+'''
+Module: data_manager.py
+Author: Hyunwoo Kang
+Last Modified: 2025-10-08 17:13
+Description: 결과를 CSV 파일로 저장하는 스크립트
+'''
 import pandas as pd
 import numpy as np
 import os

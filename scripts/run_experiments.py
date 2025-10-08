@@ -1,7 +1,7 @@
 '''
 Module: run_experiments.py
-Author: Kang Hyun Woo
-Last Modified: 2025-09-05 14:34
+Author: Hyunwoo Kang
+Last Modified: 2025-10-08 15:14
 Description: SeqSNN의 다양한 시계열 예측 실험을 병렬로 실행하는 스크립트
 '''
 

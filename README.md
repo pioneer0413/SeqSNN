@@ -16,6 +16,20 @@ A public framework for time-series forecasting with spiking neural networks (SNN
 본 확장 버전은 **'다변량 시계열 예측을 위한 채널 유사성 기반 스파이크 인코딩 기법'** 연구의 목적이며,
 Microsoft 또는 원저자에 의해 공식적으로 유지 및 관리되지 않습니다.
 
+### 코드 수정에 대한 명시
+
+추가 또는 수정된 소스 코드의 경우 각 모듈의 첫 라인에 아래와 같이 명시되어 있습니다.
+```
+'''
+Module: <Module Name>
+Modified by: Hyunwoo Kang
+Last Modified: YYYY-MM-DD HH:MM
+Changes: <Changes>
+'''
+```
+또한, 기존 코드에서 수정된 경우 코드 길이에 따라 아래처럼 수정되었음을 명시했습니다.
+`# Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)`
+
 ## Related Papers
 * Efficient and Effective Time-Series Forecasting with Spiking Neural Networks, [ICML 2024], (https://arxiv.org/pdf/2402.01533).
 * Advancing Spiking Neural Networks for Sequential Modeling with Central Pattern Generators, [NeurIPS 2024], (https://arxiv.org/pdf/2405.14362).

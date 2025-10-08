@@ -1,3 +1,9 @@
+'''
+Module: get_headers.py
+Author: Hyunwoo Kang
+Last Modified: 2025-10-08 17:14
+Description: 특정 디렉터리를 순회하여 모든 config.json 파일을 찾고, 각 파일에서 모든 키를 추출하여 CSV 헤더로 출력하는 스크립트
+'''
 import pandas as pd
 import numpy as np
 import os

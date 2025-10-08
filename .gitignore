@@ -163,7 +163,7 @@ amlt/
 wandb/
 *.txt
 
-# User specific
+# Research-Extended Version
 warehouse
 warehouse_legacy
 test

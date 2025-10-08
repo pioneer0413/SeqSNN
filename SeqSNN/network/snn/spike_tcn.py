@@ -1,3 +1,10 @@
+'''
+Module: spike_tcn.py
+Modified by: Hyunwoo Kang
+Last Modified: 2025-10-08 16:59
+Changes: Spike-TCN에 클러스터링 관련 코드가 추가되었음
+'''
+
 from typing import Optional
 
 import torch
@@ -12,7 +19,7 @@ from ...module.positional_encoding import PositionEmbedding
 from ...module.spike_encoding import SpikeEncoder
 from ..base import NETWORKS
 
-from ...module.clustering import Cluster_assigner
+from ...module.clustering import Cluster_assigner # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
 
 class SpikeTemporalBlock2D(nn.Module):
     def __init__(
@@ -137,13 +144,13 @@ class SpikeTemporalConvNet2D(nn.Module):
         pe_type: str = "none",
         pe_mode: str = "concat",  # "add" or "concat"
         neuron_pe_scale: float = 1000.0,  # "100" or "1000" or "10000"
-        use_cluster: bool = False,
-        use_ste: bool = False,  # Use Straight-Through Estimator for cluster probabilities
-        gpu_id: Optional[int] = None,
-        n_cluster: Optional[int] = 3,  # Number of clusters for clustering
-        d_model: Optional[int] = 512,  # Dimension of the model for clustering
-        use_all_zero: bool = False,  # Use all-zero cluster probabilities
-        use_all_random: bool = False,  # Use all-random cluster probabilities
+        use_cluster: bool = False, # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        use_ste: bool = False,  # Use Straight-Through Estimator for cluster probabilities # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        gpu_id: Optional[int] = None, # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        n_cluster: Optional[int] = 3,  # Number of clusters for clustering # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        d_model: Optional[int] = 512,  # Dimension of the model for clustering # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        use_all_zero: bool = False,  # Use all-zero cluster probabilities # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        use_all_random: bool = False,  # Use all-random cluster probabilities # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
     ):
         """
         Args:
@@ -156,12 +163,12 @@ class SpikeTemporalConvNet2D(nn.Module):
         self.pe_mode = pe_mode
         self.num_pe_neuron = num_pe_neuron
         self.encoder = SpikeEncoder[self._snn_backend][encoder_type](hidden_size)
-        self.use_cluster = use_cluster
-        self.use_ste = use_ste
-        self.gpu_id = gpu_id
-        self.n_cluster = n_cluster
-        self.use_all_zero = False  # Use all-zero cluster probabilities
-        self.use_all_random = False  # Use all-random cluster probabilities
+        self.use_cluster = use_cluster # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        self.use_ste = use_ste # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        self.gpu_id = gpu_id # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        self.n_cluster = n_cluster # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        self.use_all_zero = False  # Use all-zero cluster probabilities # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+        self.use_all_random = False  # Use all-random cluster probabilities # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
 
         self.num_steps = num_steps
         self.pe = PositionEmbedding(
@@ -174,6 +181,7 @@ class SpikeTemporalConvNet2D(nn.Module):
             dropout=0.1,
             num_steps=num_steps,
         )
+        # << Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
         '''
         Cluster assigner
         '''
@@ -187,6 +195,7 @@ class SpikeTemporalConvNet2D(nn.Module):
                 d_model=d_model,
                 device=self.gpu_id
             )
+        # >> Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
         layers = []
         num_channels = [channel] * num_levels
         num_channels.append(1)
@@ -217,11 +226,13 @@ class SpikeTemporalConvNet2D(nn.Module):
             self.__output_size = input_size
 
     def forward(self, inputs: torch.Tensor,
-                if_update: bool = False):
+                if_update: bool = False # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
+                ):
         utils.reset(self.encoder)
         for layer in self.network:
             utils.reset(layer)
 
+        # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
         '''
         Get cluster probabilities and embeddings
         '''
@@ -234,6 +245,7 @@ class SpikeTemporalConvNet2D(nn.Module):
 
         inputs = self.encoder(inputs)  # B, H, C, L
 
+        # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
         '''
         Inject cluster probabilities
         '''
@@ -281,14 +293,17 @@ class SpikeTemporalConvNet2D(nn.Module):
         return self.__hidden_size
 
     
+    # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
     @property
     def cluster_spike_rate(self):
         return self.spike_rate if hasattr(self, 'spike_rate') else None
     
+    # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
     @property
     def cluster_spike_count(self):
         return self.spike_count if hasattr(self, 'spike_count') else None
     
+    # Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)
     @property
     def cluster_spike_shape(self):
         return self.spike_shape if hasattr(self, 'spike_shape') else None
