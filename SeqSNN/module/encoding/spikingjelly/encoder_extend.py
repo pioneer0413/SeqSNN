@@ -138,6 +138,7 @@ class Cluster_wise_ConvEncoder(nn.Module):
             )
             self.convs.append(conv)
 
+        print("This is Version 2.")
         print("Cluster-wise ConvEncoder initialized with the following parameters:")
         print(f"Output Size: {output_size}")
         print(f"Channel-wise Kernel Size: {channel_wise_kernel}")

@@ -150,6 +150,8 @@ class SpikeRNN(nn.Module):
 
         self.__output_size = self.dim
 
+        self._cached_hiddens = None
+
     def forward(
         self,
         inputs: torch.Tensor,
@@ -203,6 +205,9 @@ class SpikeRNN(nn.Module):
             else: # spike-time axis concat
                 hiddens = torch.cat((hiddens, cluster_prob), dim=0)  # T+K, B, C, L
         
+        if if_update == False:
+            self._cached_hiddens = hiddens.detach()
+
         hiddens = hiddens.transpose(-2, -1)  # T, B, L, C
         T, B, L, _ = hiddens.size()  # T, B, L, D
         if self.pe_type != "none":
@@ -234,6 +239,10 @@ class SpikeRNN(nn.Module):
     @property
     def cluster_spike_shape(self):
         return self.spike_shape if hasattr(self, 'spike_shape') else None
+    
+    @property
+    def _hiddens(self):
+        return self._cached_hiddens
 
 
 @NETWORKS.register_module("SpikeRNN2d")
