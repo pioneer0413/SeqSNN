@@ -103,6 +103,12 @@ You can change the path of the data file in `exp/forecast/dataset/XXX.yml` confi
 ## Acknowledgement
 This repo is built upon [forecaster](https://github.com/Arthur-Null/SRD), which is a general time-series forecasting library. We greatly thank @rk2900 and @Arthur-Null for their initial contribution. 
 
+We also acknowledge the original [SeqSNN](https://github.com/microsoft/SeqSNN) repository 
+developed by the @Lvchangze, which served as the foundation for this research-extended version.  
+This work builds upon their open-source contribution to advance spiking neural network research for time-series forecasting.
+(또한, 본 연구는 @Lvchangze가 개발한 [SeqSNN](https://github.com/microsoft/SeqSNN)을 기반으로 확장되었습니다.  
+원저자의 공개 기여에 깊이 감사드리며, 본 버전은 시계열 예측을 위한 스파이킹 신경망 연구 확장을 목적으로 합니다.)
+
 ## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
