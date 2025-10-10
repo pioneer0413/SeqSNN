@@ -27,7 +27,7 @@ Last Modified: YYYY-MM-DD HH:MM
 Changes: <Changes>
 '''
 ```
-또한, 기존 코드에서 수정된 경우 코드 길이에 따라 아래처럼 수정되었음을 명시했습니다.
+또한, 기존 코드에서 수정된 경우 주석을 통해 아래와 같이 명시했습니다.
 `# Hyunwoo Kang에 의해 추가/수정되었음 (Research-Extended Version)`
 
 ## Related Papers
@@ -50,13 +50,22 @@ If you would like to make changes and run your experiments, use:
 `pip install -e .`
 
 ## Training
+### 단일 모델 실행
 Take the `iSpikformer` model as an example:
 
-`python -m SeqSNN.entry.tsforecast exp/forecast/ispikformer/ispikformer_electricity.yml`
+```
+python -m SeqSNN.entry.tsforecast exp/forecast/ispikformer/ispikformer_electricity.yml
+```
 
 You can change the `yml` configuration files as you want.
 
 You can add, remove, or modify your model architecture in `SeqSNN/network/XXX.py`.
+### 여러 하이퍼파라미터에 대해 실행
+```
+python scripts/run_experiments.py
+```
+
+실행과 관련된 더 자세한 정보는 `scripts/README.md`를 참고하세요.
 
 ## Datasets
 

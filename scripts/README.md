@@ -1,5 +1,7 @@
 ## 1. 실험 수행
-실행 전 `source`를 반드시 로컬 환경에 맞게 설정
+- 각 스크립트에서 실행 전 `17`번 행의 `source` 변수를 반드시 로컬 환경에 맞게 설정
+- `run_experiments_nonspiking.py`의 `111:139` 라인을 참고하여 하이퍼파라미터 설정
+- `run_experiments.py`의 `139:193` 라인을 참고하여 하이퍼파라미터 설정
 ### Non-spiking(ANN-based)
 ```
 python scripts/run_experiments_nonspiking.py
